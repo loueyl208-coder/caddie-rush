@@ -2900,11 +2900,232 @@ function sfx(name) {
   }
 }
 
+
+/* ============================================================
+   MUSIQUE ORIGINALE (synthétisée, aucun fichier)
+   Le motif signature "bok bok bok… BAWWK !" revient dans chaque
+   morceau, avec de vrais caquètements en percussion.
+   Notation : une case = une double-croche. "A4" = note,
+   "-" = on tient la note, "." = silence, "|" = barre de mesure.
+   Batterie : k = grosse caisse, s = caisse claire, h = charleston,
+   x = cymbale, c = "bok", C = "BAWWK".
+   ============================================================ */
+const TRACKS = [
+  { id: 'turbo', name: 'Poule Turbo', nameEn: 'Turbo Chicken', icon: '⚡', bpm: 168, lead: 'square',
+    chords: ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'E'], stab: '..x...x...x...x.',
+    melody: `A4 . A4 . A4 . E5 - - - D5 . C5 . B4 . | C5 . C5 . C5 . A5 - - - G5 . F5 . E5 . |
+             G4 . G4 . G4 . E5 - - D5 E5 . G5 - - - | D5 . B4 . G4 . B4 . D5 . G5 . F5 . E5 D5 |
+             E5 . E5 . E5 . A5 - - - C6 - B5 - A5 - | F5 . F5 . F5 . C6 - - - A5 . F5 . C5 . |
+             G5 . E5 . C5 . G5 . E5 . C5 . G4 . C5 . | B4 C5 D5 E5 F5 G#5 A5 B5 C6 - - - B5 - G#5 -`,
+    bass: `A2 . A3 . A2 . A3 . A2 . A3 . A2 . G2 . | F2 . F3 . F2 . F3 . F2 . F3 . F2 . E2 . |
+           C3 . C4 . C3 . C4 . C3 . C4 . C3 . B2 . | G2 . G3 . G2 . G3 . G2 . G3 . G2 . G#2 . |
+           A2 . A3 . A2 . A3 . A2 . A3 . A2 . G2 . | F2 . F3 . F2 . F3 . F2 . F3 . F2 . E2 . |
+           C3 . C4 . C3 . C4 . G2 . G3 . G2 . G3 . | E2 . E3 . E2 . E3 . E2 . E3 . E2 . E3 .`,
+    drums: 'k.h.s.khk.h.s.hh|k.h.s.khk.h.s.hh|k.h.s.khk.h.s.hh|k.h.s.khk.h.s.ss|k.h.s.khk.h.s.hh|k.h.s.khk.h.s.hh|k.h.s.khk.h.s.hh|kxs.s.ssk.s.ssss',
+    cluck: 'c.c.c...........|c.c.c...........|................|..............C.|c.c.c...........|c.c.c...........|................|............C...' },
+  { id: 'polka', name: 'Polka du Caddie', nameEn: 'Shopping Cart Polka', icon: '🪗', bpm: 188, lead: 'accordion',
+    chords: ['C', 'C', 'G', 'G', 'C', 'F', 'G', 'C'], stab: '..x...x...x...x.',
+    melody: `E5 . G5 . E5 . C5 . E5 . G5 . C6 - - . | B5 . A5 . G5 . F5 . E5 . D5 . C5 - - . |
+             D5 . F5 . D5 . B4 . D5 . F5 . B5 - - . | A5 . G5 . F5 . E5 . D5 - E5 - F5 - G5 - |
+             C6 . C6 . C6 . G5 - - - E5 . G5 . C6 . | A5 . A5 . A5 . F5 - - - C5 . F5 . A5 . |
+             B5 A5 G5 F5 E5 D5 C5 B4 D5 F5 A5 B5 D6 - - . | C6 . G5 . E5 . C5 . C6 . . . C5 . . .`,
+    bass: `C3 . . . G2 . . . C3 . . . G2 . . . | C3 . . . G2 . . . C3 . . . E2 . . . |
+           G2 . . . D3 . . . G2 . . . D3 . . . | G2 . . . D3 . . . G2 . . . B2 . . . |
+           C3 . . . G2 . . . C3 . . . G2 . . . | F2 . . . C3 . . . F2 . . . A2 . . . |
+           G2 . . . D3 . . . G2 . . . B2 . . . | C3 . . . G2 . . . C3 . . . C2 . . .`,
+    drums: 'k.s...s.k.s...s.|k.s...s.k.s...s.|k.s...s.k.s...s.|k.s...s.k.s.s.ss|k.s...s.k.s...s.|k.s...s.k.s...s.|k.s.k.s.k.s.k.s.|x...k...k.ssssss',
+    cluck: '................|................|................|................|c.c.c...........|c.c.c...........|................|........C.......' },
+  { id: 'surf', name: 'Surf du Rayon 7', nameEn: 'Aisle 7 Surf', icon: '🏄', bpm: 176, lead: 'surf',
+    chords: ['Em', 'Em', 'C', 'B', 'Em', 'C', 'Am', 'B'], stab: '....x.......x...',
+    melody: `E4 E4 E4 E4 G4 G4 B4 B4 E5 E5 E5 E5 D5 D5 B4 B4 | C5 C5 C5 C5 B4 B4 A4 A4 G4 G4 F#4 F#4 E4 - - - |
+             E5 E5 E5 E5 G5 G5 E5 E5 C5 C5 C5 C5 D5 D5 E5 E5 | D#5 D#5 D#5 D#5 F#5 F#5 D#5 D#5 B4 - - - . . . . |
+             B5 . B5 . B5 . E5 - - - G5 . F#5 . E5 . | C6 . C6 . C6 . E5 - - - G5 . F#5 . E5 . |
+             A5 G5 F#5 E5 D5 C5 B4 A4 G4 A4 B4 C5 D5 E5 F#5 G5 | B5 - - - A5 - - - F#5 - - - D#5 - - -`,
+    bass: `E2 . E3 . E2 E2 E3 . E2 . E3 . E2 E2 E3 . | E2 . E3 . E2 E2 E3 . E2 . E3 . E2 E2 E3 . |
+           C3 . C4 . C3 C3 C4 . C3 . C4 . C3 C3 C4 . | B2 . B3 . B2 B2 B3 . B2 . B3 . B2 B2 B3 . |
+           E2 . E3 . E2 E2 E3 . E2 . E3 . E2 E2 E3 . | C3 . C4 . C3 C3 C4 . C3 . C4 . C3 C3 C4 . |
+           A2 . A3 . A2 A2 A3 . A2 . A3 . A2 A2 A3 . | B2 . B3 . B2 B2 B3 . B2 . B3 . B2 B2 B3 .`,
+    drums: 'k.h.s.h.k.k.s.hh|k.h.s.h.k.k.s.hh|k.h.s.h.k.k.s.hh|k.h.s.h.k.ksssss|k.h.s.h.k.k.s.hh|k.h.s.h.k.k.s.hh|k.h.s.h.k.k.s.hh|x.h.s.h.x.h.ssss',
+    cluck: '................|................|................|............c.cC|c.c.c...........|c.c.c...........|................|................' },
+];
+const NOTE_I = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const midiOf = n => { const m = /^([A-G])(#|b)?(\d)$/.exec(n); return 12 * (+m[3] + 1) + NOTE_I[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
+const hzOf = m => 440 * Math.pow(2, (m - 69) / 12);
+function parseNotes(str) {
+  const toks = str.replace(/\|/g, ' ').trim().split(/\s+/), ev = [];
+  let last = null;
+  toks.forEach((tk, i) => {
+    if (tk === '.') { last = null; return; }
+    if (tk === '-') { if (last) last.l++; return; }
+    last = { s: i, m: midiOf(tk), l: 1 }; ev.push(last);
+  });
+  return { len: toks.length, ev };
+}
+function compileTrack(tr) {
+  if (tr.c) return tr.c;
+  const mel = parseNotes(tr.melody), bass = parseNotes(tr.bass);
+  const steps = tr.chords.length * 16;
+  const at = (arr) => { const m = new Map(); for (const e of arr) { if (!m.has(e.s)) m.set(e.s, []); m.get(e.s).push(e); } return m; };
+  const drums = tr.drums.replace(/\|/g, ''), cl = tr.cluck.replace(/\|/g, '');
+  const chordNotes = name => { const q = /^([A-G][#b]?)(m?)$/.exec(name); const root = midiOf(q[1] + '4'); return (q[2] ? [0, 3, 7] : [0, 4, 7]).map(i => root + i); };
+  tr.c = { steps, mel: at(mel.ev), bass: at(bass.ev), drums, cluck: cl, chords: tr.chords.map(chordNotes) };
+  return tr.c;
+}
+// --- Instruments ---
+const noiseBufs = new WeakMap();
+function noiseBuf(c) {
+  let b = noiseBufs.get(c);
+  if (!b) { b = c.createBuffer(1, c.sampleRate * 0.6, c.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; noiseBufs.set(c, b); }
+  return b;
+}
+function env(c, t, a, peak, dur, rel = 0.04) {
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + a);
+  g.gain.setTargetAtTime(peak * 0.55, t + a, dur * 0.5);
+  g.gain.setTargetAtTime(0.0001, t + dur, rel);
+  return g;
+}
+function osc(c, type, f, t, end, detune = 0) {
+  const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune;
+  o.start(t); o.stop(end); return o;
+}
+const INST = {
+  lead(c, bus, t, f, dur, kind) {
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'surf' ? 2600 : 3800;
+    const g = env(c, t, 0.006, kind === 'surf' ? 0.11 : 0.075, kind === 'surf' ? Math.min(dur, 0.09) : dur);
+    lp.connect(g); g.connect(bus.out); g.connect(bus.echo);
+    const end = t + dur + 0.4;
+    if (kind === 'accordion') {
+      osc(c, 'square', f, t, end, -9).connect(lp); osc(c, 'sawtooth', f, t, end, 9).connect(lp);
+      const trem = osc(c, 'sine', 7, t, end); const tg = c.createGain(); tg.gain.value = 0.018; trem.connect(tg); tg.connect(g.gain);
+    } else if (kind === 'surf') {
+      osc(c, 'sawtooth', f, t, end).connect(lp); osc(c, 'square', f * 0.5, t, end, 5).connect(lp);
+    } else {
+      osc(c, 'square', f, t, end).connect(lp); osc(c, 'square', f, t, end, 10).connect(lp);
+    }
+  },
+  bass(c, bus, t, f, dur) {
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 6;
+    lp.frequency.setValueAtTime(1400, t); lp.frequency.exponentialRampToValueAtTime(260, t + 0.15);
+    const g = env(c, t, 0.005, 0.2, dur * 0.9);
+    osc(c, 'sawtooth', f, t, t + dur + 0.3).connect(lp); lp.connect(g); g.connect(bus.out);
+  },
+  stab(c, bus, t, notes) {
+    const g = env(c, t, 0.004, 0.035, 0.09);
+    g.connect(bus.out);
+    for (const m of notes) osc(c, 'triangle', hzOf(m), t, t + 0.4).connect(g);
+  },
+  kick(c, bus, t) {
+    const o = osc(c, 'sine', 160, t, t + 0.3); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    const g = c.createGain(); g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    o.connect(g); g.connect(bus.out);
+  },
+  noise(c, bus, t, type, freq, vol, dec) {
+    const n = c.createBufferSource(); n.buffer = noiseBuf(c);
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+    n.connect(f); f.connect(g); g.connect(bus.out); n.start(t); n.stop(t + dec + 0.05);
+  },
+  snare(c, bus, t) {
+    INST.noise(c, bus, t, 'bandpass', 1900, 0.4, 0.13);
+    const o = osc(c, 'triangle', 200, t, t + 0.12); const g = c.createGain(); g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(g); g.connect(bus.out);
+  },
+  // "Bok !" et "BAWWK !" : un bec synthétique (dent de scie filtrée qui glisse)
+  cluck(c, bus, t, big) {
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3.5; bp.frequency.value = big ? 1100 : 1350;
+    const dur = big ? 0.38 : 0.075;
+    const o = osc(c, 'sawtooth', big ? 620 : 1150, t, t + dur + 0.05);
+    if (big) { o.frequency.exponentialRampToValueAtTime(1300, t + 0.09); o.frequency.exponentialRampToValueAtTime(760, t + dur);
+      const v = osc(c, 'sine', 28, t, t + dur + 0.05); const vg = c.createGain(); vg.gain.value = 45; v.connect(vg); vg.connect(o.frequency); }
+    else o.frequency.exponentialRampToValueAtTime(560, t + dur);
+    const o2 = osc(c, 'square', (big ? 620 : 1150) * 0.5, t, t + dur + 0.05); o2.frequency.exponentialRampToValueAtTime(big ? 380 : 280, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(big ? 0.5 : 0.42, t + 0.008); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(bp); o2.connect(bp); bp.connect(g); g.connect(bus.out);
+    INST.noise(c, bus, t, 'highpass', 3000, big ? 0.05 : 0.08, 0.03);
+  },
+  // Carillon des annonces du magasin
+  chime(c, bus, t, notes) {
+    notes.forEach((m, i) => {
+      const tt = t + i * 0.42, f = hzOf(m);
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(0.22, tt + 0.01); g.gain.exponentialRampToValueAtTime(0.001, tt + 1.6);
+      osc(c, 'sine', f, tt, tt + 1.7).connect(g); const g2 = c.createGain(); g2.gain.value = 0.25; osc(c, 'sine', f * 2.76, tt, tt + 1.7).connect(g2); g2.connect(g);
+      g.connect(bus.out);
+    });
+  },
+  sadTrombone(c, bus, t) {
+    [[392, 370], [370, 349], [349, 330], [330, 262]].forEach(([a, b], i) => {
+      const tt = t + i * 0.34, d = i === 3 ? 0.9 : 0.3;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      const o = osc(c, 'sawtooth', a, tt, tt + d + 0.1); o.frequency.linearRampToValueAtTime(b, tt + d);
+      if (i === 3) { const v = osc(c, 'sine', 6, tt, tt + d); const vg = c.createGain(); vg.gain.value = 10; v.connect(vg); vg.connect(o.frequency); }
+      const g = env(c, tt, 0.03, 0.16, d, 0.08); o.connect(lp); lp.connect(g); g.connect(bus.out);
+    });
+  },
+};
+function makeBus(c, dest) {
+  const out = c.createGain(); out.gain.value = 1;
+  const echo = c.createDelay(1); echo.delayTime.value = 0.21;
+  const fb = c.createGain(); fb.gain.value = 0.28; const wet = c.createGain(); wet.gain.value = 0.22;
+  const echoIn = c.createGain();
+  echoIn.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(out);
+  const tone = c.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 18000;
+  const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+  out.connect(tone); tone.connect(comp); comp.connect(dest);
+  return { out, echo: echoIn, tone };
+}
+function schedStep(c, bus, tr, step, t, spb) {
+  const C = compileTrack(tr), i = step % C.steps, bar = Math.floor(i / 16), j = i % 16;
+  for (const e of C.mel.get(i) || []) INST.lead(c, bus, t, hzOf(e.m), e.l * spb * 0.95, tr.lead);
+  for (const e of C.bass.get(i) || []) INST.bass(c, bus, t, hzOf(e.m), e.l * spb);
+  if (tr.stab[j] === 'x') INST.stab(c, bus, t, C.chords[bar]);
+  const d = C.drums[i];
+  if (d === 'k') INST.kick(c, bus, t);
+  else if (d === 's') INST.snare(c, bus, t);
+  else if (d === 'h') INST.noise(c, bus, t, 'highpass', 7500, 0.09, 0.035);
+  else if (d === 'x') { INST.noise(c, bus, t, 'highpass', 5000, 0.16, 0.7); INST.kick(c, bus, t); }
+  if (C.cluck[i] === 'c') INST.cluck(c, bus, t, false);
+  else if (C.cluck[i] === 'C') INST.cluck(c, bus, t, true);
+}
+const Music = { on: false, step: 0, next: 0, rate: 1, bus: null, master: null };
+const musicTrack = () => TRACKS.find(tr => tr.id === SAVE.music);
+const trackName = tr => (tr ? tr.icon + ' ' + (LANG === 'en' && tr.nameEn || tr.name) : T('🔇 Aucune', '🔇 Off'));
+function musicBus() {
+  if (!actx) return null;
+  if (!Music.bus) { Music.master = actx.createGain(); Music.master.gain.value = 0.55; Music.master.connect(actx.destination); Music.bus = makeBus(actx, Music.master); }
+  return Music.bus;
+}
+Music.play = (fresh = true) => {
+  if (!actx || !musicTrack()) { Music.on = false; return; }
+  musicBus();
+  if (fresh) { Music.step = 0; Music.rate = 1; }
+  Music.next = actx.currentTime + 0.08;
+  Music.on = true;
+};
+Music.stop = () => { Music.on = false; };
+Music.muffle = on => { const b = musicBus(); if (b) b.tone.frequency.setTargetAtTime(on ? 700 : 18000, actx.currentTime, 0.15); };
+Music.oneShot = (fn, ...a) => { const b = musicBus(); if (b && !muted) fn(actx, b, actx.currentTime + 0.03, ...a); };
+setInterval(() => {
+  const tr = musicTrack();
+  if (!Music.on || !actx || muted || !tr || actx.state !== 'running') return;
+  const spb = 60 / (tr.bpm * Music.rate) / 4;
+  if (Music.next < actx.currentTime - 0.25) Music.next = actx.currentTime + 0.05;
+  while (Music.next < actx.currentTime + 0.15) {
+    schedStep(actx, Music.bus, tr, Music.step, Music.next, spb);
+    Music.next += spb; Music.step++;
+  }
+}, 30);
+// La musique démarre au premier contact (les navigateurs l'exigent)
+const firstTouch = () => { initAudio(); if (!Music.on && (state === 'menu' || state === 'wardrobe')) Music.play(); };
+window.addEventListener('pointerdown', firstTouch, { once: true });
+window.addEventListener('keydown', firstTouch, { once: true });
+
 /* ============================================================
    SAUVEGARDE
    ============================================================ */
 const SAVE_KEY = 'caddieRush3';
-const SAVE = { wallet: 0, owned: [], v: 2, equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
+const SAVE = { wallet: 0, owned: [], v: 2, music: 'turbo', equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
 try {
   const raw = JSON.parse(Portal.get(SAVE_KEY) || 'null');
   if (raw) { const def = Object.assign({}, SAVE.equip); Object.assign(SAVE, raw); SAVE.equip = Object.assign({}, def, raw.equip || {});
@@ -2994,6 +3215,8 @@ function prepareLevel(mode, n) {
 
 function startLevel(mode, n) {
   initAudio();
+  Music.stop(); Music.muffle(false);
+  Music.oneShot(INST.chime, [midiOf('E5'), midiOf('C5'), midiOf('G4'), midiOf('C5')]);
   leaveWardrobeCamera();
   prepareLevel(mode, n);
   setUI(true);
@@ -3029,7 +3252,7 @@ window.addEventListener('keydown', e => {
   if (k === 'arrowup' || k === 'z' || k === 'w' || k === 'shift') { e.preventDefault(); useItem(); }
   if ((k === 'p' || k === 'escape') && state === 'playing') togglePause();
   if (k === 'escape' && state === 'wardrobe') closeWardrobe();
-  if (k === 'm') { muted = !muted; toast(muted ? T('🔇 Son coupé', '🔇 Sound off') : T('🔊 Son activé', '🔊 Sound on')); }
+  if (k === 'm') { muted = !muted; if (!muted && (state === 'menu' || state === 'wardrobe' || state === 'playing')) Music.play(false); toast(muted ? T('🔇 Son coupé', '🔇 Sound off') : T('🔊 Son activé', '🔊 Sound on')); }
 });
 window.addEventListener('keyup', e => setKey(e, false));
 window.addEventListener('blur', () => {
@@ -3085,6 +3308,7 @@ async function afterBreak(fn) {
 function togglePause() {
   S.paused = !S.paused;
   Portal.gameplay(!S.paused && state === 'playing');
+  Music.muffle(S.paused);
   $('count').textContent = S.paused ? T('PAUSE', 'PAUSED') : '';
   $('count').style.fontSize = S.paused ? '80px' : '';
   clock.getDelta();
@@ -3275,11 +3499,13 @@ function setUI(on) { document.body.classList.toggle('ui-off', !on); }
 function showMenu() {
   state = 'menu';
   Portal.gameplay(false);
+  if (actx && !Music.on) Music.play();
+  Music.muffle(false);
   setUI(false);
   leaveWardrobeCamera();
   const sel = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   showCard(`
-    <div class="menu-top"><button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
+    <div class="menu-top"><button id="bMusic" class="lang">🎵 ${trackName(musicTrack())} ▸</button>&nbsp;<button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
     <div class="menu-buttons">
       <button id="bMarket">🛒 ${T('CIRCUIT SUPERMARCHÉ', 'SUPERMARKET RACE')}<small>${T('3 tours · rafle un max de courses !', '3 laps · grab all the groceries!')}</small></button>
       <button id="bDescent" class="b2">🏔 ${T('LA DESCENTE', 'DOWNHILL')}<small>${T('dévale la montagne', 'race down the mountain')}</small></button>
@@ -3294,6 +3520,12 @@ function showMenu() {
   sel('bMarket', () => playNew('market'));
   sel('bDescent', () => playNew('descent'));
   sel('bWardrobe', openWardrobe);
+  sel('bMusic', () => {
+    const ids = TRACKS.map(tr => tr.id).concat('off');
+    SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
+    initAudio(); Music.play();
+    $('bMusic').textContent = `🎵 ${trackName(musicTrack())} ▸`;
+  });
   sel('bLang', () => { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); });
 }
 
@@ -3375,6 +3607,7 @@ function revive() {
   setUI(true);
   state = 'playing';
   Portal.gameplay(true);
+  Music.play();
   toast(T("C'EST REPARTI ! 🛡️", "BACK IN THE RACE! 🛡️"), 1200);
   sfx('cluck');
 }
@@ -3384,6 +3617,8 @@ let wrTab = 'tete', wrLook = null, wrSel = null;
 function openWardrobe() {
   state = 'wardrobe';
   Portal.gameplay(false);
+  if (actx && !Music.on) Music.play();
+  Music.muffle(true);
   setUI(false);
   wrLook = Object.assign({}, SAVE.equip);
   wrSel = null;
@@ -3622,6 +3857,7 @@ function updateCountdown(dt) {
       el.textContent = 'GO !'; sfx('go'); sfx('cluck'); CH.flapT = 0.8;
       state = 'playing';
       Portal.gameplay(true);
+      Music.play();
       clearTimeout(countTimer);
       countTimer = setTimeout(() => { if (!S.paused) el.textContent = ''; }, 700);
     }
@@ -3857,6 +4093,7 @@ function updatePlaying(dt) {
       S.lapStart = S.elapsed;
       S.lap = lap;
       sfx('lap');
+      if (lap === CFG.laps) Music.rate = 1.1;
       toast(lap === CFG.laps ? T('DERNIER TOUR ! 🔔', 'FINAL LAP! 🔔') : T(`TOUR ${lap}/${CFG.laps}`, `LAP ${lap}/${CFG.laps}`), 1300);
     }
   }
@@ -3867,6 +4104,8 @@ function updatePlaying(dt) {
 function crash() {
   state = 'crashing';
   Portal.gameplay(false);
+  Music.stop();
+  setTimeout(() => Music.oneShot(INST.sadTrombone), 500);
   S.crashT = 0;
   S.crashD = S.d;
   S.camShake = 0.9;
@@ -3914,6 +4153,7 @@ function updateCrashing(dt) {
 
 function finishLevel() {
   state = 'finished';
+  Music.stop();
   Portal.gameplay(false);
   Portal.races++;
   S.finishT = 0;
@@ -4054,6 +4294,16 @@ function loop() {
 }
 
 // Outil de test (uniquement avec ?debug=1 dans l'adresse)
+if (/[?&]debug=1/.test(location.search)) window.__music = { TRACKS, render: async (id, loops = 2) => {
+  const tr = TRACKS.find(x => x.id === id), C = compileTrack(tr), spb = 60 / tr.bpm / 4;
+  const secs = 2.2 + C.steps * spb * loops + 1.5, oc = new OfflineAudioContext(2, Math.ceil(44100 * secs), 44100);
+  const mg = oc.createGain(); mg.gain.value = 0.55; mg.connect(oc.destination);
+  const bus = makeBus(oc, mg);
+  INST.chime(oc, bus, 0.05, [midiOf('E5'), midiOf('C5'), midiOf('G4'), midiOf('C5')]);
+  for (let k = 0; k < C.steps * loops; k++) schedStep(oc, bus, tr, k, 2.2 + k * spb, spb);
+  const buf = await oc.startRendering();
+  return Array.from(buf.getChannelData(0));
+} };
 if (/[?&]debug=1/.test(location.search)) window.__caddie = { sim: sec => { for (let i = 0; i < sec * 30; i++) tick(1 / 30); }, S, keys, get state() { return state; } };
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
