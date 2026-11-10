@@ -529,12 +529,19 @@ const T = (fr, en) => (LANG === 'fr' ? fr : en);
 /* ============================================================
    RÉGLAGES DU JEU
    ============================================================ */
-const ROAD_W = 10;
-const HALF_ROAD = ROAD_W / 2;
+// Largeur de la piste : 10 m pour la descente, 15 m pour les circuits (réglée par setRoad)
+const ROAD_DESCENT = 10, ROAD_CIRCUIT = 15;
+const TRACK_SCALE = 2;                          // agrandissement des tracés des circuits
+let ROAD_W = ROAD_DESCENT, HALF_ROAD = ROAD_W / 2, RS = 1;
 const SEG_LEN = 20;
 const SEG_COUNT = 14;
-const LANES = [-4, -2, 0, 2, 4];
-const CART_LIMIT = HALF_ROAD - 0.7;
+let LANES = [-4, -2, 0, 2, 4];
+let CART_LIMIT = HALF_ROAD - 0.7;
+function setRoad(w) {
+  ROAD_W = w; HALF_ROAD = w / 2; RS = w / ROAD_DESCENT;
+  LANES = [-4, -2, 0, 2, 4].map(v => v * RS);
+  CART_LIMIT = HALF_ROAD - 0.7;
+}
 const CART_HX = 0.55, CART_HZ = 0.8;
 const STEER = 22;
 const LATERAL_DAMP = 2.0;
@@ -1183,7 +1190,7 @@ function buildTrackTables(COEF) {
   for (let i = 0; i < RAW; i++) {
     const t = i / RAW * Math.PI * 2;
     let x = 0, z = 0;
-    for (const [k, ax, px, az, pz] of COEF) { x += ax * Math.cos(k * t + px); z += az * Math.sin(k * t + pz); }
+    for (const [k, ax, px, az, pz] of COEF) { x += ax * TRACK_SCALE * Math.cos(k * t + px); z += az * TRACK_SCALE * Math.sin(k * t + pz); }
     raw.push([x, z]);
   }
   const cum = [0];
@@ -1452,16 +1459,17 @@ for (let i = 0; i < 10; i++) {
 }
 descentWorld.add(backdrop);
 
-function makeArch(text, color, parent) {
+function makeArch(text, color, parent, w = 13) {
   const g = new THREE.Group();
   const pm = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+  const px = w / 2 - 0.4;
   for (const s of [-1, 1]) {
     const p = shadowed(new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.6, 0.7), pm));
-    p.position.set(s * 6.1, 3.3, 0); g.add(p);
-    const ball = shadowed(new THREE.Mesh(G.sph, M.gold)); ball.scale.setScalar(0.5); ball.position.set(s * 6.1, 6.9, 0); g.add(ball);
+    p.position.set(s * px, 3.3, 0); g.add(p);
+    const ball = shadowed(new THREE.Mesh(G.sph, M.gold)); ball.scale.setScalar(0.5); ball.position.set(s * px, 6.9, 0); g.add(ball);
   }
   const tm = new THREE.MeshStandardMaterial({ map: bannerTex(text, color), roughness: 0.7, emissive: 0xffffff, emissiveMap: null, emissiveIntensity: 0 });
-  const banner = shadowed(new THREE.Mesh(new THREE.BoxGeometry(13, 1.6, 0.3), [pm, pm, pm, pm, tm, tm]));
+  const banner = shadowed(new THREE.Mesh(new THREE.BoxGeometry(w, 1.6 * w / 13, 0.3), [pm, pm, pm, pm, tm, tm]));
   banner.position.y = 6.2; g.add(banner);
   parent.add(g);
   return g;
@@ -2539,7 +2547,7 @@ const CATS = [
   { name: T('HYGIÈNE', 'HEALTH & BEAUTY'), color: '#e0457b', c: 0xe0457b, shape: 'bottle', pal: [0xf8bbd0, 0xb3e5fc, 0xffffff, 0xc5e1a5, 0xce93d8] },
   { name: T('PÂTES & RIZ', 'PASTA & RICE'), color: '#b5651d', c: 0xb5651d, shape: 'box', pal: [0x1e88e5, 0xfdd835, 0xe53935, 0xffffff, 0x43a047] },
 ];
-const GON = { len: 2.4, dep: 1.1, hgt: 2.3, lat: 7.2, levels: [0.12, 0.82, 1.52] };
+const GON = { len: 2.4, dep: 1.1, hgt: 2.3, lat: 7.2, levels: [0.12, 0.82, 1.52] };   // lat recalculé selon la largeur
 
 const MK_CACHE = {};
 function useCircuit(c) {
@@ -2552,6 +2560,8 @@ function useCircuit(c) {
 }
 function buildMarket(circ) {
   buildTrackTables(circ.coef);
+  const E = HALF_ROAD - 5;                      // élargissement par rapport à la piste de 10 m
+  GON.lat = 7.2 + E;
   const cats = circ.cats || CATS;
   const grp = new THREE.Group();
   scene.add(grp);
@@ -2628,12 +2638,12 @@ function buildMarket(circ) {
     return m;
   }
   const trackMat = new THREE.MeshStandardMaterial({ map: trackTex, roughness: 0.4, side: THREE.DoubleSide });
-  ribbon([[-HALF_ROAD, 0.015, 0], [HALF_ROAD, 0.015, 1]], 0, L, 1, 16, trackMat);
+  ribbon([[-HALF_ROAD, 0.015, 0], [HALF_ROAD, 0.015, 1]], 0, L, 1, 16 * RS, trackMat);
   const curbMat = new THREE.MeshStandardMaterial({ map: curbTex, roughness: 0.5, side: THREE.DoubleSide });
   ribbon([[HALF_ROAD, 0.016, 0], [HALF_ROAD, 0.26, 0.3], [HALF_ROAD + 0.55, 0.26, 0.7], [HALF_ROAD + 0.55, 0.0, 1]], 0, L, 0.5, 2, curbMat);
   ribbon([[-HALF_ROAD - 0.55, 0.0, 0], [-HALF_ROAD - 0.55, 0.26, 0.3], [-HALF_ROAD, 0.26, 0.7], [-HALF_ROAD, 0.016, 1]], 0, L, 0.5, 2, curbMat);
-  ribbon([[-HALF_ROAD, 0.03, 0], [HALF_ROAD, 0.03, 1]], -0.9, 0.9, 0.9, 1.8, M.checker);
-  const arch = makeArch(T('🏁  DÉPART · ARRIVÉE  🏁', '🏁  START · FINISH  🏁'), '#e23b3b', grp);
+  ribbon([[-HALF_ROAD, 0.03, 0], [HALF_ROAD, 0.03, 1]], -0.9, 0.9, 0.9, 1.8 / RS, M.checker);
+  const arch = makeArch(T('🏁  DÉPART · ARRIVÉE  🏁', '🏁  START · FINISH  🏁'), '#e23b3b', grp, ROAD_W + 3);
   mkPoint(0, 0, arch.position); arch.rotation.y = mkYaw(0);
 
   // --- Gondoles (rayons) : regroupées par zones pour que la caméra
@@ -2669,7 +2679,7 @@ function buildMarket(circ) {
 
   // Côté des caisses (près de la ligne d'arrivée)
   let coSide = 1;
-  mkPoint(0, 12, v); if (!clearOf(v.x, v.z, 10, 0)) coSide = -1;
+  mkPoint(0, 12 + E, v); if (!clearOf(v.x, v.z, 10 + E, 0)) coSide = -1;
   // Le long de la piste (côté piste), avec trous pour les allées transversales
   const SEC = 62, GAP = 9;
   MK.shelfMask = { '-1': new Uint8Array(Math.ceil(L) + 1), '1': new Uint8Array(Math.ceil(L) + 1) };
@@ -2688,7 +2698,7 @@ function buildMarket(circ) {
       const sec = Math.floor(off / SEC), loc = off - sec * SEC;
       if (loc > SEC - GAP) { if (loc - (SEC - GAP) < GL) gaps.push({ d: dm + GAP / 2 - 1, side }); continue; }
       mkPoint(dm, side * GON.lat, v2);
-      if (!clearOf(v2.x, v2.z, 9.5, dm)) continue;
+      if (!clearOf(v2.x, v2.z, 9.5 + E, dm)) continue;
       const cat = cats[(sec * 3 + (side > 0 ? 1 : 0)) % cats.length];
       gondola(v2.x, v2.z, mkYaw(dm) + (side < 0 ? Math.PI : 0), cat, true, chunk('t' + Math.floor(dm / 45)));
       for (let k = Math.floor(dm - 1.2); k <= Math.ceil(dm + 1.2); k++) if (k >= 0 && k < MK.shelfMask[side].length) MK.shelfMask[side][k] = 1;
@@ -2697,7 +2707,7 @@ function buildMarket(circ) {
   }
   // Rayons de fond (dans le reste du magasin) : un seul bloc texturé par gondole
   for (let x = x0 + 10; x < x1 - 8; x += 12) for (let z = z0 + 8; z < z1 - 6; z += GL + 0.02) {
-    if (!clearOf(x, z, 15.5)) continue;
+    if (!clearOf(x, z, 15.5 + E)) continue;
     gondola(x, z, 0, cats[Math.abs(Math.floor(x / 12)) % cats.length], false, chunk('b' + Math.floor(x / 40) + ':' + Math.floor(z / 40)));
   }
   // Instanciation (une série de maillages par zone)
@@ -2748,7 +2758,7 @@ function buildMarket(circ) {
   // Grandes banderoles au-dessus de la piste
   const promos = [[T('SUPER PROMO -50%', 'MEGA SALE -50%'), '#e23b3b', '#ffd23f'], [T('SOLDES MONSTRES !', 'MONSTER DEALS!'), '#ffd23f', '#e23b3b'], [T('FRAIS DU JOUR', 'FRESH TODAY'), '#2e9d3a', '#ffffff'],
     ['CADDIE MARKET', '#2f7cf6', '#ffffff'], [T('ATTENTION AU CADDIE !', 'WATCH OUT FOR CARTS!'), '#ff8a1f', '#ffffff'], [T('2 ACHETÉS = 1 OFFERT', 'BUY 2 GET 1 FREE'), '#c026d3', '#ffffff']].map((p, i) => (circ.promos && i % 2 === 0 ? circ.promos[(i / 2) % circ.promos.length] : p));
-  const promoGeo = new THREE.PlaneGeometry(9.5, 1.4);
+  const promoGeo = new THREE.PlaneGeometry(ROAD_W - 0.5, 1.4 * RS);
   let pk = 0;
   for (let d = 70; d < L - 40; d += 92) {
     const [txt, bg, fg] = promos[pk++ % promos.length];
@@ -2757,7 +2767,7 @@ function buildMarket(circ) {
     const g = twoSided(promoGeo, m);
     mkPoint(d, 0, g.position); g.position.y = 6.2; g.rotation.y = mkYaw(d);
     grp.add(g);
-    for (const k of [-4.5, 4.5]) { v.set(k, 0.7, 0).applyAxisAngle(Y, g.rotation.y).add(g.position); wire(v.clone(), v2.copy(v).setY(CEIL)); }
+    for (const k of [-HALF_ROAD + 0.5, HALF_ROAD - 0.5]) { v.set(k, 0.7 * RS, 0).applyAxisAngle(Y, g.rotation.y).add(g.position); wire(v.clone(), v2.copy(v).setY(CEIL)); }
   }
   // Fanions multicolores
   const bpos = [], bcol = [], lineSeg = [];
@@ -2767,7 +2777,7 @@ function buildMarket(circ) {
     { const m = ((d - 70) % 92 + 92) % 92; if (m < 10 || m > 82) continue; }
     const yw = mkYaw(d); right.set(Math.cos(yw), 0, -Math.sin(yw));
     mkPoint(d, 0, v);
-    const P = s => { const lat = -8 + 16 * s; return new THREE.Vector3(v.x + right.x * lat, 6.4 - 1.1 * 4 * s * (1 - s), v.z + right.z * lat); };
+    const P = s => { const lat = -(8 + E) + (16 + 2 * E) * s; return new THREE.Vector3(v.x + right.x * lat, 6.4 - 1.1 * 4 * s * (1 - s), v.z + right.z * lat); };
     const NF = 16;
     for (let k = 0; k < NF; k++) {
       const s0 = (k + 0.15) / NF, s1 = (k + 0.85) / NF;
@@ -2791,7 +2801,7 @@ function buildMarket(circ) {
   for (let d = 50; d < L - 30; d += 58) {
     const side = sk++ % 2 ? 1 : -1;
     const m = new THREE.Mesh(saleGeo, saleMat);
-    mkPoint(d, side * 9.3, m.position); m.position.y = 6.6; m.rotation.y = mkYaw(d);
+    mkPoint(d, side * (9.3 + E), m.position); m.position.y = 6.6; m.rotation.y = mkYaw(d);
     grp.add(m);
   }
 
@@ -2802,7 +2812,7 @@ function buildMarket(circ) {
     const d = -20 + k * 7.5;
     const yw = mkYaw(d);
     const g = new THREE.Group();
-    mkPoint(d, coSide * 11.5, g.position); g.rotation.y = yw;
+    mkPoint(d, coSide * (11.5 + E), g.position); g.rotation.y = yw;
     mk(G.unit, counterM, 0, 0.47, 0, g, 1.0, 0.94, 3.4);
     mk(G.unit, beltM, 0, 0.96, 0.2, g, 0.7, 0.04, 2.6);
     const reg = mk(G.unit, matC(0xe8e8e8), 0, 1.15, -1.3, g, 0.45, 0.32, 0.4);
@@ -2835,19 +2845,19 @@ function buildMarket(circ) {
   };
   for (let d = 40; d < L - 30; d += rand(9, 16)) {
     const side = Math.random() < 0.5 ? -1 : 1;
-    placePerson(d, side * 6.15, side, false);
+    placePerson(d, side * (6.15 + E), side, false);
   }
   // Dans les allées transversales : présentoirs + clients avec caddie
   for (const gp of gaps) {
-    mkPoint(gp.d, gp.side * 8.5, v);
-    if (!clearOf(v.x, v.z, 9, gp.d)) continue;
-    placePerson(gp.d, gp.side * 7.2, gp.side, Math.random() < 0.7);
-    if (Math.random() < 0.6) placePerson(gp.d + 2.5, gp.side * 9.5, gp.side, false);
-    const disp = canPyramid(); mkPoint(gp.d - 3, gp.side * 10.5, disp.position); disp.rotation.y = mkYaw(gp.d); grp.add(disp);
+    mkPoint(gp.d, gp.side * (8.5 + E), v);
+    if (!clearOf(v.x, v.z, 9 + E, gp.d)) continue;
+    placePerson(gp.d, gp.side * (7.2 + E), gp.side, Math.random() < 0.7);
+    if (Math.random() < 0.6) placePerson(gp.d + 2.5, gp.side * (9.5 + E), gp.side, false);
+    const disp = canPyramid(); mkPoint(gp.d - 3, gp.side * (10.5 + E), disp.position); disp.rotation.y = mkYaw(gp.d); grp.add(disp);
   }
   // Piliers
   const pillars = [];
-  for (let x = x0 + 20; x < x1 - 10; x += 26) for (let z = z0 + 18; z < z1 - 10; z += 26) if (clearOf(x, z, 9.5)) pillars.push([x, z]);
+  for (let x = x0 + 20; x < x1 - 10; x += 26) for (let z = z0 + 18; z < z1 - 10; z += 26) if (clearOf(x, z, 9.5 + E)) pillars.push([x, z]);
   const pm = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, CEIL, 0.9), new THREE.MeshStandardMaterial({ map: pillarTex, roughness: 0.7 }), Math.max(1, pillars.length));
   pillars.forEach(([x, z], i) => { mtx.makeTranslation(x, CEIL / 2, z); pm.setMatrixAt(i, mtx); });
   pm.count = pillars.length; pm.receiveShadow = true;
@@ -2988,7 +2998,7 @@ function spawnObstacle(type, x, d) {
       const p = makePerson(); o.add(p);
       const withCart = Math.random() < 0.55;
       if (withCart) { const c = makeMiniCart(); c.position.z = -1.0; c.scale.setScalar(0.9); o.add(c); }
-      const e = addEnt('shopper', o, 0, d, withCart ? 1.0 : 0.5, 0.55, { moving: true, amp: 3.9, freq: rand(0.5, 0.75), person: p, walkDir: 1 });
+      const e = addEnt('shopper', o, 0, d, withCart ? 1.0 : 0.5, 0.55, { moving: true, amp: 3.9 * RS, freq: rand(0.5, 0.75), person: p, walkDir: 1 });
       return e;
     }
     default: {
@@ -3044,7 +3054,7 @@ function spawnRow(d) {
   const gap = c.rowGap * rand(0.85, 1.25);
   if (d >= S.nextItemD) {
     S.nextItemD = d + (mkt ? rand(120, 160) : rand(170, 240));
-    for (const x of [-3.6, -1.2, 1.2, 3.6]) spawnBox(x, d);
+    for (const x of (mkt ? [-5.4, -2.7, 0, 2.7, 5.4] : [-3.6, -1.2, 1.2, 3.6])) spawnBox(x, d);
     return gap;
   }
   S.pathLane = clamp(S.pathLane + Math.floor(Math.random() * 3) - 1, 0, 4);
@@ -3095,7 +3105,7 @@ function generateMarketEnts() {
     let ok = true;
     for (let k = 0; k < 4; k++) if (!MK.shelfMask[side][Math.floor(d0 + k * 2.6)]) ok = false;
     if (!ok) continue;
-    for (let k = 0; k < 4; k++) spawnCourse(side * 4.35, d0 + k * 2.6, 1.35, k === 3 && Math.random() < 0.35);
+    for (let k = 0; k < 4; k++) spawnCourse(side * (HALF_ROAD - 0.65), d0 + k * 2.6, 1.35, k === 3 && Math.random() < 0.35);
     placed++;
   }
 }
@@ -3191,7 +3201,7 @@ function makeRival(def) {
 for (const def of RIVAL_DEFS) RIV.push(makeRival(def));
 
 const p1Tag = nameTag('J1', '#ffd23f'); p1Tag.visible = false; cart.add(p1Tag);
-const GRID_SLOT = i => ({ d: -3.2 - Math.floor(i / 2) * 3.6, x: i % 2 ? 1.75 : -1.75 });
+const GRID_SLOT = i => ({ d: -3.2 - Math.floor(i / 2) * 3.6, x: (i % 2 ? 1.75 : -1.75) * RS });
 const PLAYER_SLOT = 5;
 const racing = () => MODE === 'market' && S.rivals;
 const p1Slot = () => (RUN.kind === 'multi' ? 4 : PLAYER_SLOT);
@@ -3207,7 +3217,7 @@ function resetRivals(on) {
   RIV.forEach((b, i) => {
     const g = GRID_SLOT(slotOf.get(b));
     Object.assign(b, { d: g.d, x: g.x, vx: 0, tx: g.x, speed: 0, air: 0, vy: 0, spinT: 0, spinDir: 1, turboT: 0, shieldT: 0,
-      item: null, itemT: 0, bag: 0, finished: false, time: 0, think: Math.random() * 0.2, noise: rand(-2, 2), yaw: 0,
+      item: null, itemT: 0, bag: 0, finished: false, time: 0, think: Math.random() * 0.2, noise: rand(-2, 2) * RS, yaw: 0,
       skill: b.def.skill * rand(0.98, 1.02) * (1 + (CFG.tier || 0) * 0.012), spinA: 0, hitCool: 0 });
     b.mesh.visible = on;
     if (b.human) b.human.camX = g.x * 0.6;
@@ -3227,7 +3237,7 @@ function poseRival(b, dt) {
   b.flame.visible = b.turboT > 0; if (b.flame.visible) b.flame.scale.set(1.4, 1.4, rand(0.8, 1.6));
   b.shield.visible = b.shieldT > 0;
   const dd = trkDelta(b.d - S.d);
-  m.visible = nearView(b.d, -30, 175);
+  m.visible = !!S.rivals && nearView(b.d, -30, 175);
   if (MP.on) { b.tag.visible = false; if (b.htag) b.htag.visible = false; return; }
   if (b.htag) b.htag.visible = false;
   // ne pas boucher la vue : on cache le caddie qui colle la caméra
@@ -3235,8 +3245,9 @@ function poseRival(b, dt) {
   b.tag.visible = dd > 3 && dd < 45;
 }
 const HAZARD = { obstacle: 1, shopper: 1, oil: 1, banana: 1 };
+const CANDS = {};
 function chooseLine(b) {
-  const cands = [-4.1, -2.75, -1.4, 0, 1.4, 2.75, 4.1];
+  const cands = CANDS[RS] || (CANDS[RS] = [-6, -4.8, -3.6, -2.4, -1.2, 0, 1.2, 2.4, 3.6, 4.8, 6].map(c => c * RS / 1.5).filter(c => Math.abs(c) < CART_LIMIT - 0.3));
   const sc = cands.map(c => -Math.abs(c - b.x) * 1.1 + (c - b.x) * 0 - Math.abs(c - b.noise) * 0.25);
   for (const o of ents) {
     const u = o.userData;
@@ -3321,7 +3332,7 @@ function updateRivals(dt) {
     // trajectoire
     if (!hd) {
       b.think -= dt;
-      if (b.think <= 0) { b.think = rand(0.12, 0.22); b.tx = chooseLine(b); if (Math.random() < 0.02) b.noise = rand(-3, 3); }
+      if (b.think <= 0) { b.think = rand(0.12, 0.22); b.tx = chooseLine(b); if (Math.random() < 0.02) b.noise = rand(-3, 3) * RS; }
       const want = b.spinT > 0 ? b.vx * 0.9 : clamp((b.tx - b.x) * 3.2, -6.5, 6.5);
       b.vx += (want - b.vx) * Math.min(1, dt * 6);
     } else b.human.magnetT = Math.max(0, b.human.magnetT - dt);
@@ -3868,6 +3879,7 @@ function applyTheme(th) {
 function prepareLevel(mode, n, tier) {
   MODE = mode;
   CFG = levelConfig(mode, n, tier);
+  setRoad(mode === 'market' ? ROAD_CIRCUIT : ROAD_DESCENT);
   if (mode === 'market') {
     useCircuit(CFG.circuit);
     snow.visible = !!CFG.circuit.snow;
