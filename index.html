@@ -146,6 +146,97 @@
   .menu-top { display: flex; justify-content: flex-end; margin: -6px -8px 6px 0; }
   .card .lang { margin: 0; padding: 4px 12px; font-size: 13px; border-width: 2px; box-shadow: 0 3px 0 var(--ink); background: #e2e8f0; color: var(--ink); text-shadow: none; }
   .card button.ad { background: linear-gradient(180deg, #7be495, #22a356); }
+
+  /* ---------- Menu d'accueil ---------- */
+  #overlay.home { background: url("assets/cover.jpg") 70% 30% / cover no-repeat, #1b1f3b; padding: 0; align-items: stretch; justify-content: stretch; }
+  .card.home { background: none; border: 0; box-shadow: none; border-radius: 0; max-width: none; width: 100%; height: 100%;
+    padding: 0; text-align: left; position: relative; overflow: hidden; color: var(--ink); }
+  .home-fade { position: absolute; inset: 0 auto 0 0; width: min(62%, 760px); pointer-events: none;
+    background: linear-gradient(90deg, rgba(255,255,255,.88) 0%, rgba(255,255,255,.7) 55%, rgba(255,255,255,0) 100%),
+      repeating-conic-gradient(rgba(27,31,59,.07) 0 25%, transparent 0 50%) 0 0 / 56px 56px;
+    -webkit-mask: linear-gradient(90deg, #000 60%, transparent); mask: linear-gradient(90deg, #000 60%, transparent); }
+  .home-top { position: absolute; top: 14px; right: 16px; display: flex; gap: 8px; z-index: 2; }
+  .home-top span { background: rgba(255,255,255,.92); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 14px;
+    font-weight: 900; font-size: 15px; box-shadow: 0 4px 0 rgba(27,31,59,.5); }
+  .home-list { position: absolute; left: clamp(14px, 4vw, 70px); bottom: clamp(74px, 13vh, 120px);
+    display: flex; flex-direction: column; gap: clamp(10px, 3vh, 26px); width: min(580px, 88vw); }
+  .hrow { position: relative; display: flex; align-items: center; height: clamp(50px, 9vh, 74px); cursor: pointer;
+    transform: skewX(-14deg); background: linear-gradient(180deg, #ffffff, #e9edf3); border: 3px solid rgba(27,31,59,.25);
+    border-radius: 10px; box-shadow: 0 5px 0 rgba(27,31,59,.25), 0 10px 24px rgba(0,0,0,.18); width: 74%;
+    transition: width .18s, background .18s, transform .12s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .hrow > * { transform: skewX(14deg); }
+  .hrow .hic { width: clamp(44px, 8vh, 62px); height: clamp(40px, 7.2vh, 56px); margin: 0 12px 0 12px; border-radius: 12px;
+    background: #fff; border: 2px solid rgba(27,31,59,.15); display: grid; place-items: center; font-size: clamp(22px, 4.4vh, 34px);
+    line-height: 1; filter: grayscale(1); opacity: .55; flex: none; }
+  .hrow .hic.quad { grid-template-columns: 1fr 1fr; font-size: clamp(12px, 2.2vh, 17px); padding: 3px; }
+  .hrow .hlb { font-family: "Arial Black", "Segoe UI Black", sans-serif; font-size: clamp(17px, 3.4vh, 27px); color: #2b3150; white-space: nowrap; }
+  .hrow .htag { margin-left: 10px; font-size: 13px; font-weight: 900; color: #64748b; background: #e2e8f0; border-radius: 8px; padding: 2px 8px; }
+  .hrow .hsubs { display: none; margin-left: auto; height: 100%; }
+  .hrow.sel { width: 100%; background: linear-gradient(180deg, #fff27a, #ffc81e); border-color: var(--ink);
+    box-shadow: 0 5px 0 var(--ink), 0 10px 26px rgba(0,0,0,.25); }
+  .hrow.sel .hic { filter: none; opacity: 1; border-color: var(--ink); }
+  .hrow.sel .hlb { color: var(--ink); }
+  .hrow.sel .htag { background: rgba(255,255,255,.6); color: var(--ink); }
+  .hrow.sel .hsubs { display: flex; }
+  .hrow.sel::before, .hrow.sel::after { content: ""; position: absolute; top: 50%; width: 0; height: 0; transform: translateY(-50%);
+    border-top: 13px solid transparent; border-bottom: 13px solid transparent; filter: drop-shadow(0 0 1.5px #1b1f3b) drop-shadow(0 0 1px #1b1f3b);
+    animation: nudge .7s ease-in-out infinite alternate; }
+  .hrow.sel::before { left: -24px; border-left: 14px solid #ffc81e; }
+  .hrow.sel::after { right: -24px; border-right: 14px solid #ffc81e; animation-direction: alternate-reverse; }
+  @keyframes nudge { from { margin-left: 0; } to { margin-left: 5px; } }
+  .hsub { display: flex; align-items: center; justify-content: center; padding: 0 14px; min-width: 64px; height: 100%;
+    font-family: "Arial Black", "Segoe UI Black", sans-serif; font-size: clamp(14px, 2.6vh, 20px); color: #94a3b8;
+    background: rgba(255,255,255,.55); border-left: 3px solid rgba(27,31,59,.25); white-space: nowrap; }
+  .hsub:last-child { border-radius: 0 7px 7px 0; }
+  .hsub.on { background: #ffd83d; color: var(--ink); box-shadow: inset 0 0 0 3px var(--ink); }
+  .hsub:hover { color: var(--ink); }
+  .hsub small { font-size: .62em; margin-left: 2px; }
+  .hrow:active { transform: skewX(-14deg) translateY(3px); }
+  .home-bottom { position: absolute; left: clamp(14px, 4vw, 70px); bottom: clamp(12px, 3vh, 26px); display: flex; gap: 12px; flex-wrap: wrap; }
+  .hb { display: flex; align-items: center; gap: 8px; background: linear-gradient(180deg, #fff, #e9edf3); border: 3px solid rgba(27,31,59,.3);
+    border-radius: 10px; padding: 6px 12px; font-weight: 900; font-size: 14px; cursor: pointer; box-shadow: 0 4px 0 rgba(27,31,59,.3);
+    transform: skewX(-14deg); user-select: none; -webkit-tap-highlight-color: transparent; }
+  .hb > * { transform: skewX(14deg); }
+  .hb .bi { font-size: 22px; }
+  .hb.sel { background: linear-gradient(180deg, #fff27a, #ffc81e); border-color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
+  .home-panel { position: absolute; right: clamp(12px, 3vw, 48px); top: 70px; max-height: calc(100% - 150px); width: min(470px, 92vw);
+    background: rgba(255,255,255,.97); border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 8px 0 rgba(0,0,0,.2), 0 20px 60px rgba(0,0,0,.35);
+    padding: 16px 18px; display: flex; flex-direction: column; z-index: 3; animation: panelIn .22s ease-out; }
+  @keyframes panelIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
+  .home-panel h3 { margin: 0 0 6px; font-family: "Arial Black", "Segoe UI Black", sans-serif; font-size: 22px; color: var(--red); }
+  .home-panel .pbody { overflow-y: auto; flex: 1; font-size: 14px; line-height: 1.5; }
+  .home-panel .card-btn { align-self: flex-start; }
+  .hist-sum { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .hist-sum span { background: #fff7d6; border: 2px solid #f5c400; border-radius: 999px; padding: 2px 10px; font-weight: 900; font-size: 13px; }
+  .hist { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; background: #f1f5f9;
+    border-radius: 14px; padding: 8px 12px; margin-bottom: 7px; border-left: 6px solid var(--green); }
+  .hist.crash { border-left-color: var(--red); }
+  .hist .hi { font-size: 26px; grid-row: span 2; }
+  .hist .ht { font-weight: 900; }
+  .hist .hs { font-family: "Arial Black", "Segoe UI Black", sans-serif; font-size: 18px; text-align: right; }
+  .hist .hd { color: #64748b; font-size: 12.5px; font-weight: 700; }
+  .hist .hw { color: #64748b; font-size: 12px; text-align: right; font-weight: 700; }
+  .soon { display: inline-block; background: var(--blue); color: #fff; font-weight: 900; border-radius: 999px; padding: 2px 12px; font-size: 13px; }
+  @media (max-width: 760px), (max-height: 500px) {
+    #overlay.home { background-position: 62% 40%; }
+    .home-fade { width: 100%; }
+    .home-list { width: min(calc(100vw - 50px), 470px); gap: 11px; bottom: 70px; }
+    .hrow { width: 82%; height: 52px; } .hrow.sel { width: 100%; }
+    .hrow .hlb { font-size: 15px; } .hrow .htag { display: none; }
+    .hrow .hic { width: 40px; height: 38px; margin: 0 8px; font-size: 21px; }
+    .hsub { min-width: 44px; padding: 0 9px; font-size: 13px; }
+    .hsub .lbl { display: none; }
+    .home-bottom { gap: 7px; left: 10px; right: 10px; }
+    .hb { padding: 5px 9px; font-size: 12px; } .hb .bi { font-size: 18px; } .hb .bl { display: none; }
+    .home-panel { left: 10px; right: 10px; width: auto; top: 58px; max-height: calc(100% - 122px); }
+    .home-top span { font-size: 12px; padding: 3px 10px; }
+  }
+  @media (max-height: 500px) and (min-width: 600px) {
+    .home-fade { width: 62%; }
+    .home-list { gap: 8px; bottom: 58px; } .hrow { height: 44px; }
+    .home-bottom { bottom: 8px; }
+    .home-panel { left: auto; width: min(430px, 55vw); top: 10px; max-height: calc(100% - 20px); }
+  }
   #error { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: #1e293b; color: #fff; z-index: 20; text-align: center; padding: 20px; }
   @media (max-width: 760px) {
@@ -3251,6 +3342,7 @@ function setKey(e, down) {
 window.addEventListener('keydown', e => {
   setKey(e, true);
   const k = e.key.toLowerCase();
+  if (state === 'menu' && !overlay.classList.contains('hidden') && !Portal.inAd && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'backspace'].includes(k)) { e.preventDefault(); homeKey(k); return; }
   if (e.repeat) return;
   if (k === ' ' || k === 'enter') {
     e.preventDefault();
@@ -3504,6 +3596,26 @@ function showCard(html, action, cls = '', cardCls = 'card') {
 }
 
 function setUI(on) { document.body.classList.toggle('ui-off', !on); }
+/* --- Menu d'accueil --- */
+const HOME = { row: 0, sub: { solo: 0, multi: 0 }, bottom: 0, panel: null };
+function homeRows() {
+  return [
+    { id: 'solo', icon: '🐔', label: T('1 JOUEUR', '1 PLAYER'),
+      subs: [{ id: 'market', html: `🛒<span class="lbl">&nbsp;${T('Supermarché', 'Supermarket')}</span>` }, { id: 'descent', html: `🏔<span class="lbl">&nbsp;${T('Descente', 'Downhill')}</span>` }] },
+    { id: 'multi', icon: '🐔🐔🐔🐔', quad: true, label: T('PLUSIEURS JOUEURS', 'MULTIPLAYER'),
+      subs: [2, 3, 4].map(n => ({ id: n, html: `${n}<small>${T('J', 'P')}</small>` })) },
+    { id: 'online', icon: '🌐', label: T('EN LIGNE', 'ONLINE PLAY') },
+    { id: 'history', icon: '📜', label: T('DERNIÈRES COURSES', 'RECENT RACES'), tag: '24 h' },
+  ];
+}
+function homeBottoms() {
+  return [
+    { id: 'wardrobe', icon: '🐔', label: T('Vestiaire', 'Wardrobe') },
+    { id: 'music', icon: '🎵', label: musicLabel() },
+    { id: 'lang', icon: LANG === 'fr' ? '🇬🇧' : '🇫🇷', label: LANG === 'fr' ? 'English' : 'Français' },
+    { id: 'help', icon: '❓', label: T('Commandes', 'Controls') },
+  ];
+}
 function showMenu() {
   state = 'menu';
   Portal.gameplay(false);
@@ -3511,31 +3623,137 @@ function showMenu() {
   Music.muffle(false);
   setUI(false);
   leaveWardrobeCamera();
-  const sel = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
-  showCard(`
-    <div class="menu-top"><button id="bMusic" class="lang">🎵 ${musicLabel()} ▸</button>&nbsp;<button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
-    <div class="menu-buttons">
-      <button id="bMarket">🛒 ${T('CIRCUIT SUPERMARCHÉ', 'SUPERMARKET RACE')}<small>${T('3 tours · rafle un max de courses !', '3 laps · grab all the groceries!')}</small></button>
-      <button id="bDescent" class="b2">🏔 ${T('LA DESCENTE', 'DOWNHILL')}<small>${T('dévale la montagne', 'race down the mountain')}</small></button>
-      <button id="bWardrobe" class="b3">🐔 ${T('VESTIAIRE', 'WARDROBE')}<small>${T('casques, armures, lunettes…', 'hats, armor, glasses…')}</small></button>
+  HOME.panel = null;
+  showCard('', () => homeActivate(), 'home', 'card home');
+  renderHome();
+}
+function renderHome() {
+  const rows = homeRows(), bots = homeBottoms();
+  card.innerHTML = `
+    <div class="home-fade"></div>
+    <div class="home-top"><span>🛍️ ${SAVE.wallet}</span><span>🏆 ${Math.max(SAVE.best.market || 0, SAVE.best.descent || 0)}</span></div>
+    <div class="home-list">${rows.map((r, i) => `
+      <div class="hrow${HOME.row === i ? ' sel' : ''}" data-row="${i}">
+        <div class="hic${r.quad ? ' quad' : ''}">${r.quad ? [...r.icon.matchAll(/🐔/gu)].map(() => '<span>🐔</span>').join('') : r.icon}</div>
+        <div class="hlb">${r.label}</div>${r.tag ? `<span class="htag">${r.tag}</span>` : ''}
+        ${r.subs ? `<div class="hsubs">${r.subs.map((sb, j) => `<div class="hsub${HOME.sub[r.id] === j ? ' on' : ''}" data-row="${i}" data-sub="${j}">${sb.html}</div>`).join('')}</div>` : ''}
+      </div>`).join('')}
     </div>
-    <div class="menu-info">🛍️ ${SAVE.wallet} ${T('courses à dépenser', 'groceries to spend')} · 🏆 ${T('Supermarché', 'Supermarket')} ${SAVE.best.market || 0} · ${T('Descente', 'Downhill')} ${SAVE.best.descent || 0}</div>
-    <div class="menu-help"><span class="keys">←</span><span class="keys">→</span> / <span class="keys">A</span><span class="keys">D</span> ${T('diriger', 'steer')} ·
-      <span class="keys">↑</span> / <span class="keys">${T('Espace', 'Space')}</span> ${T('objet', 'item')} · <span class="keys">P</span> pause · <span class="keys">M</span> ${T('son', 'sound')} · ${T('mobile : touchez gauche/droite', 'mobile: tap left/right')}
-      <span class="long"><br>${T('🎁 Boîtes mystère : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant à courses — 🟧 boost · 🪵 rampe = saut !',
-        '🎁 Mystery boxes: 🚀 Turbo · 🛡️ Shield · 🔧 New wheel · 🧲 Grocery magnet — 🟧 boost pad · 🪵 ramp = jump!')}</span></div>`,
-    () => playNew('market'), 'title', 'card menu');
-  sel('bMarket', () => playNew('market'));
-  sel('bDescent', () => playNew('descent'));
-  sel('bWardrobe', openWardrobe);
-  sel('bMusic', () => {
-    const ids = ['random', ...TRACKS.map(tr => tr.id), 'off'];
-    SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
-    initAudio(); Music.play();
-    $('bMusic').textContent = `🎵 ${musicLabel()} ▸`;
-    if (SAVE.music === 'random' && musicTrack()) toast('🎵 ' + trackName(musicTrack()), 1200);
+    <div class="home-bottom">${bots.map((b, i) => `<div class="hb${HOME.row === rows.length && HOME.bottom === i ? ' sel' : ''}" data-bot="${i}"><span class="bi">${b.icon}</span><span class="bl">${b.label}</span></div>`).join('')}</div>
+    ${HOME.panel ? homePanelHtml(HOME.panel) : ''}`;
+  card.querySelectorAll('.hrow').forEach(el => {
+    const i = +el.dataset.row;
+    el.onclick = e => {
+      const sub = e.target.closest('.hsub');
+      if (sub) { HOME.sub[rows[i].id] = +sub.dataset.sub; HOME.row = i; homeActivate(); return; }
+      if (HOME.row === i) { homeActivate(); return; }
+      HOME.row = i; HOME.panel = null; sfx('tick'); renderHome();
+    };
+    if (!IS_TOUCH) el.onmouseenter = () => { if (HOME.row !== i && !HOME.panel) { HOME.row = i; sfx('tick'); renderHome(); } };
   });
-  sel('bLang', () => { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); });
+  card.querySelectorAll('.hb').forEach(el => {
+    el.onclick = () => { HOME.row = rows.length; HOME.bottom = +el.dataset.bot; homeActivate(); };
+  });
+  const back = $('homeBack'); if (back) back.onclick = () => { HOME.panel = null; sfx('tick'); renderHome(); };
+}
+function homeActivate() {
+  if (state !== 'menu') return;
+  initAudio();
+  const rows = homeRows();
+  if (HOME.row >= rows.length) {
+    const b = homeBottoms()[HOME.bottom].id;
+    if (b === 'wardrobe') return openWardrobe();
+    if (b === 'lang') { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); return; }
+    if (b === 'music') {
+      const ids = ['random', ...TRACKS.map(tr => tr.id), 'off'];
+      SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
+      Music.play();
+      if (SAVE.music === 'random' && musicTrack()) toast('🎵 ' + trackName(musicTrack()), 1200);
+      return renderHome();
+    }
+    if (b === 'help') { HOME.panel = HOME.panel === 'help' ? null : 'help'; sfx('tick'); return renderHome(); }
+    return;
+  }
+  const r = rows[HOME.row];
+  if (r.id === 'solo') { sfx('go'); return playNew(r.subs[HOME.sub.solo].id); }
+  HOME.panel = HOME.panel === r.id ? null : r.id;
+  sfx('tick');
+  renderHome();
+}
+function homeKey(k) {
+  const nRows = homeRows().length;
+  const r = homeRows()[HOME.row];
+  if (k === 'escape' || k === 'backspace') { if (HOME.panel) { HOME.panel = null; renderHome(); } return; }
+  if (k === 'arrowup' || k === 'arrowdown') {
+    HOME.row = (HOME.row + (k === 'arrowup' ? -1 : 1) + nRows + 1) % (nRows + 1);
+    HOME.panel = null;
+  } else if (HOME.row === nRows) {
+    HOME.bottom = (HOME.bottom + (k === 'arrowleft' ? -1 : 1) + 4) % 4;
+  } else if (r.subs) {
+    HOME.sub[r.id] = clamp(HOME.sub[r.id] + (k === 'arrowleft' ? -1 : 1), 0, r.subs.length - 1);
+  } else return;
+  sfx('tick');
+  renderHome();
+}
+function timeAgo(t) {
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 1) return T("à l'instant", 'just now');
+  if (m < 60) return T(`il y a ${m} min`, `${m} min ago`);
+  const h = Math.floor(m / 60);
+  return T(`il y a ${h} h ${String(m % 60).padStart(2, '0')}`, `${h} h ${String(m % 60).padStart(2, '0')} ago`);
+}
+function homePanelHtml(id) {
+  const back = `<button id="homeBack" class="secondary" style="margin:10px 0 0">◀ ${T('Retour', 'Back')}</button>`;
+  if (id === 'history') {
+    const h = recentRaces();
+    const body = h.length ? `
+      <div class="hist-sum"><span>🏁 ${h.length} ${T(h.length > 1 ? 'courses' : 'course', h.length > 1 ? 'races' : 'race')}</span>
+        <span>🛍️ ${h.reduce((a, e) => a + e.bag, 0)} ${T('courses ramassées', 'groceries grabbed')}</span>
+        <span>🏆 ${Math.max(...h.map(e => e.score))} pts</span></div>
+      ${h.map(e => `<div class="hist${e.res === 'crash' ? ' crash' : ''}">
+        <div class="hi">${e.mode === 'market' ? '🛒' : '🏔'}</div>
+        <div class="ht">${e.res === 'crash' ? T('💥 Crash', '💥 Crash') : T('🏁 Arrivée', '🏁 Finished')} · ${e.mode === 'market' ? T('Supermarché', 'Supermarket') : T('Descente', 'Downhill')} ${T('niv.', 'lvl')} ${e.lvl}</div>
+        <div class="hs">${e.score} pts</div>
+        <div class="hd">⏱ ${fmtTime(e.time)} · 🛍️ ${e.bag}${e.gold ? ` (${e.gold} ✨)` : ''}${e.lap ? ` · ${T('meilleur tour', 'best lap')} ${e.lap.toFixed(1)} s` : ''}</div>
+        <div class="hw">${timeAgo(e.t)}</div>
+      </div>`).join('')}`
+      : `<p>${T("Aucune course ces dernières 24 heures.", 'No races in the last 24 hours.')}</p><p class="muted">${T('Lance une partie en <b>1 JOUEUR</b> : chaque course apparaîtra ici pendant 24 h.', 'Start a <b>1 PLAYER</b> race: each race shows up here for 24 h.')}</p>`;
+    return `<div class="home-panel"><h3>📜 ${T('Dernières courses (24 h)', 'Recent races (24 h)')}</h3><div class="pbody">${body}</div>${back}</div>`;
+  }
+  if (id === 'multi') {
+    const n = [2, 3, 4][HOME.sub.multi];
+    return `<div class="home-panel"><h3>🐔 ${T(`${n} joueurs`, `${n} players`)} <span class="soon">${T('Bientôt', 'Soon')}</span></h3><div class="pbody">
+      <p>${T(`Écran partagé à <b>${n} poules</b> sur le même appareil : chacun son caddie, chacun ses courses !`, `Split screen with <b>${n} chickens</b> on the same device: everyone gets a cart and their own groceries!`)}</p>
+      <p class="muted">${T('Ce mode est en préparation.', 'This mode is in the works.')}</p></div>${back}</div>`;
+  }
+  if (id === 'online') {
+    return `<div class="home-panel"><h3>🌐 ${T('En ligne', 'Online play')} <span class="soon">${T('Bientôt', 'Soon')}</span></h3><div class="pbody">
+      <p>${T("Affronte d'autres poules du monde entier dans le supermarché.", 'Race chickens from all over the world in the supermarket.')}</p>
+      <p class="muted">${T('Ce mode demande un serveur de jeu : il est en préparation.', 'This mode needs a game server: it is in the works.')}</p></div>${back}</div>`;
+  }
+  if (id === 'help') {
+    return `<div class="home-panel"><h3>❓ ${T('Commandes', 'Controls')}</h3><div class="pbody">
+      <p><span class="keys">←</span><span class="keys">→</span> / <span class="keys">A</span><span class="keys">D</span> ${T('diriger', 'steer')}<br>
+      <span class="keys">↑</span> / <span class="keys">${T('Espace', 'Space')}</span> ${T('utiliser l’objet', 'use item')}<br>
+      <span class="keys">P</span> pause · <span class="keys">M</span> ${T('couper le son', 'mute')}<br>
+      📱 ${T('mobile : touchez à gauche / à droite', 'mobile: tap left / right')}</p>
+      <p>${T('🎁 Boîtes mystère : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant à courses', '🎁 Mystery boxes: 🚀 Turbo · 🛡️ Shield · 🔧 New wheel · 🧲 Grocery magnet')}<br>
+      ${T('🟧 dalle boost · 🪵 rampe = saut !', '🟧 boost pad · 🪵 ramp = jump!')}</p>
+      <p>${T('Menu : <span class="keys">↑</span><span class="keys">↓</span> choisir · <span class="keys">←</span><span class="keys">→</span> option · <span class="keys">Entrée</span> valider', 'Menu: <span class="keys">↑</span><span class="keys">↓</span> select · <span class="keys">←</span><span class="keys">→</span> option · <span class="keys">Enter</span> confirm')}</p>
+      <p class="muted">🏆 ${T('Records', 'Best')} : ${T('Supermarché', 'Supermarket')} ${SAVE.best.market || 0} · ${T('Descente', 'Downhill')} ${SAVE.best.descent || 0}</p></div>${back}</div>`;
+  }
+  return '';
+}
+
+/* --- Historique des courses (24 h) --- */
+const DAY = 24 * 3600 * 1000;
+function recentRaces() { return (SAVE.hist || []).filter(e => Date.now() - e.t < DAY).sort((a, b) => b.t - a.t); }
+function logRace(res, score) {
+  const e = { t: Date.now(), mode: MODE, lvl: S.level, res, score, bag: S.bag.length, gold: S.bag.filter(b => b.gold).length,
+    time: +S.elapsed.toFixed(1), lap: MODE === 'market' && S.lapTimes.length ? +Math.min(...S.lapTimes).toFixed(2) : 0 };
+  SAVE.hist = [e, ...recentRaces()].slice(0, 40);
+  S.histT = e.t;
+  persist();
 }
 
 // Crédite les courses de la partie dans le porte-monnaie (une seule fois)
@@ -3560,6 +3778,7 @@ function showLevelDone() {
   const next = levelConfig(MODE, S.level + 1);
   const isRecord = saveBest(S.bank);
   if (isRecord) Portal.happy();
+  logRace('finish', S.bank);
   const lapsHtml = MODE === 'market' && S.lapTimes.length ? `<div><span>🏁 ${T('Meilleur tour', 'Best lap')}</span><b>${Math.min(...S.lapTimes).toFixed(2)} s</b></div>` : '';
   const golds = S.bag.filter(b => b.gold).length;
   showCard(`
@@ -3591,6 +3810,7 @@ function showGameOver() {
   const score = S.bank + Math.floor(S.crashD) + bagPoints();
   const isRecord = saveBest(score);
   if (isRecord) Portal.happy();
+  logRace('crash', score);
   showCard(`
     <h2>💥 CRASH !</h2>
     <p class="muted">${T('Niveau', 'Level')} ${S.level} · ${CFG.name}</p>
@@ -3607,6 +3827,7 @@ function showGameOver() {
 // Pub récompensée : on repart d'où on s'est crashé, protégé par un bouclier
 function revive() {
   S.revived = true;
+  SAVE.hist = (SAVE.hist || []).filter(e => e.t !== S.histT); persist();
   S.d = Math.max(0, S.crashD - 2); S.z = -S.d;
   S.speed = 8; S.vx = 0; S.bounce = 0; S.air = 0; S.vy = 0;
   S.shieldT = 4; S.spinT = 0;
