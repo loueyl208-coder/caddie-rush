@@ -52,7 +52,8 @@
   #place { position: fixed; right: 20px; bottom: 172px; z-index: 6; pointer-events: none; display: none;
     font: 900 64px/1 "Arial Black", "Segoe UI Black", sans-serif; color: var(--yellow); -webkit-text-stroke: 3px var(--ink);
     text-shadow: 0 5px 0 rgba(0,0,0,.35); }
-  #place sup { font-size: .45em; vertical-align: top; position: relative; top: .25em; }
+  #place sup { font-size: .45em; vertical-align: top; position: relative; top: .25em; -webkit-text-stroke: 1px var(--ink); }
+  .pvp sup { -webkit-text-stroke: 1px var(--ink); }
   #place small { font-size: .32em; color: #fff; -webkit-text-stroke: 1.5px var(--ink); margin-left: 4px; }
   #place.up { animation: placeUp .45s ease-out; }
   @keyframes placeUp { 0% { transform: scale(1); } 35% { transform: scale(1.35) rotate(-6deg); } 100% { transform: scale(1); } }
