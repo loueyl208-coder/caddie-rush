@@ -3088,15 +3088,22 @@ function schedStep(c, bus, tr, step, t, spb) {
   if (C.cluck[i] === 'c') INST.cluck(c, bus, t, false);
   else if (C.cluck[i] === 'C') INST.cluck(c, bus, t, true);
 }
-const Music = { on: false, step: 0, next: 0, rate: 1, bus: null, master: null };
-const musicTrack = () => TRACKS.find(tr => tr.id === SAVE.music);
+const Music = { on: false, step: 0, next: 0, rate: 1, bus: null, master: null, cur: null };
+// Mode "random" : un morceau au hasard (différent du précédent) à chaque menu / course
+function pickRandomTrack() {
+  const pool = TRACKS.filter(tr => tr.id !== Music.cur);
+  Music.cur = pick(pool.length ? pool : TRACKS).id;
+}
+const musicTrack = () => TRACKS.find(tr => tr.id === (SAVE.music === 'random' ? Music.cur : SAVE.music));
 const trackName = tr => (tr ? tr.icon + ' ' + (LANG === 'en' && tr.nameEn || tr.name) : T('🔇 Aucune', '🔇 Off'));
+const musicLabel = () => (SAVE.music === 'random' ? T('🎲 Aléatoire', '🎲 Shuffle') : trackName(musicTrack()));
 function musicBus() {
   if (!actx) return null;
   if (!Music.bus) { Music.master = actx.createGain(); Music.master.gain.value = 0.55; Music.master.connect(actx.destination); Music.bus = makeBus(actx, Music.master); }
   return Music.bus;
 }
 Music.play = (fresh = true) => {
+  if (SAVE.music === 'random' && (fresh || !Music.cur)) pickRandomTrack();
   if (!actx || !musicTrack()) { Music.on = false; return; }
   musicBus();
   if (fresh) { Music.step = 0; Music.rate = 1; }
@@ -3125,10 +3132,11 @@ window.addEventListener('keydown', firstTouch, { once: true });
    SAUVEGARDE
    ============================================================ */
 const SAVE_KEY = 'caddieRush3';
-const SAVE = { wallet: 0, owned: [], v: 2, music: 'turbo', equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
+const SAVE = { wallet: 0, owned: [], v: 2, music: 'random', equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
 try {
   const raw = JSON.parse(Portal.get(SAVE_KEY) || 'null');
   if (raw) { const def = Object.assign({}, SAVE.equip); Object.assign(SAVE, raw); SAVE.equip = Object.assign({}, def, raw.equip || {});
+    if (!raw.musicV) { SAVE.music = 'random'; SAVE.musicV = 1; }
     if (raw.v !== 2) { SAVE.v = 2; for (const k of ['tete', 'corps']) if (SAVE.equip[k] === 'none') SAVE.equip[k] = def[k]; SAVE.equip.pattes = 'robot'; } SAVE.best = Object.assign({ market: 0, descent: 0 }, raw.best || {}); }
   else SAVE.best.descent = parseInt(localStorage.getItem('caddieRushBest2') || '0', 10) || 0;
 } catch (e) {}
@@ -3505,7 +3513,7 @@ function showMenu() {
   leaveWardrobeCamera();
   const sel = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   showCard(`
-    <div class="menu-top"><button id="bMusic" class="lang">🎵 ${trackName(musicTrack())} ▸</button>&nbsp;<button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
+    <div class="menu-top"><button id="bMusic" class="lang">🎵 ${musicLabel()} ▸</button>&nbsp;<button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
     <div class="menu-buttons">
       <button id="bMarket">🛒 ${T('CIRCUIT SUPERMARCHÉ', 'SUPERMARKET RACE')}<small>${T('3 tours · rafle un max de courses !', '3 laps · grab all the groceries!')}</small></button>
       <button id="bDescent" class="b2">🏔 ${T('LA DESCENTE', 'DOWNHILL')}<small>${T('dévale la montagne', 'race down the mountain')}</small></button>
@@ -3521,10 +3529,11 @@ function showMenu() {
   sel('bDescent', () => playNew('descent'));
   sel('bWardrobe', openWardrobe);
   sel('bMusic', () => {
-    const ids = TRACKS.map(tr => tr.id).concat('off');
+    const ids = ['random', ...TRACKS.map(tr => tr.id), 'off'];
     SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
     initAudio(); Music.play();
-    $('bMusic').textContent = `🎵 ${trackName(musicTrack())} ▸`;
+    $('bMusic').textContent = `🎵 ${musicLabel()} ▸`;
+    if (SAVE.music === 'random' && musicTrack()) toast('🎵 ' + trackName(musicTrack()), 1200);
   });
   sel('bLang', () => { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); });
 }
@@ -3607,7 +3616,7 @@ function revive() {
   setUI(true);
   state = 'playing';
   Portal.gameplay(true);
-  Music.play();
+  Music.play(false);
   toast(T("C'EST REPARTI ! 🛡️", "BACK IN THE RACE! 🛡️"), 1200);
   sfx('cluck');
 }
