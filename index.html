@@ -266,6 +266,42 @@
     .home-bottom { bottom: 8px; }
     .home-panel { left: auto; width: min(430px, 55vw); top: 10px; max-height: calc(100% - 20px); }
   }
+
+  #notice { position: fixed; top: 92px; left: 50%; transform: translate(-50%, -20px); opacity: 0; z-index: 12; pointer-events: none;
+    background: linear-gradient(180deg, #fff27a, #ffc81e); color: var(--ink); border: 3px solid var(--ink); border-radius: 16px;
+    padding: 8px 16px; font-weight: 800; font-size: 15px; box-shadow: 0 5px 0 rgba(0,0,0,.25); transition: opacity .3s, transform .3s; max-width: 92vw; text-align: center; }
+  #notice.show { opacity: 1; transform: translate(-50%, 0); }
+  #notice.low { top: auto; bottom: 14px; }
+  #tip { position: fixed; left: 50%; bottom: 120px; transform: translate(-50%, 20px); opacity: 0; z-index: 8; pointer-events: none;
+    background: rgba(27,31,59,.88); color: #fff; border: 3px solid var(--yellow); border-radius: 18px; padding: 9px 18px 10px;
+    font-weight: 800; font-size: 17px; text-align: center; max-width: min(620px, 92vw); transition: opacity .3s, transform .3s; }
+  #tip small { display: block; color: var(--yellow); font-size: 11px; letter-spacing: 1.5px; margin-bottom: 2px; }
+  #tip.show { opacity: 1; transform: translate(-50%, 0); }
+  body.ui-off #tip { display: none; }
+  .home-panel.wide { width: min(560px, 94vw); }
+  .picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .picks.four { grid-template-columns: repeat(2, 1fr); }
+  .pick { background: #f1f5f9; border: 3px solid transparent; border-radius: 16px; padding: 10px 8px; text-align: center; cursor: pointer; transition: transform .1s; }
+  .pick.sel { border-color: var(--ink); background: linear-gradient(180deg, #fff6b0, #ffd84a); transform: translateY(-3px); }
+  .pick .pi { font-size: 40px; line-height: 1.1; } .pick .pn { font-weight: 900; font-size: 15px; margin-top: 2px; }
+  .pick .ps { color: #f59e0b; letter-spacing: 2px; } .pick .pc { font-size: 15px; margin-top: 3px; } .pick .pb { font-size: 12px; color: #475569; font-weight: 700; margin-top: 3px; }
+  .trophies { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
+  .trophy { background: #fff7d6; border: 2px solid #f5c400; border-radius: 999px; padding: 2px 10px; font-weight: 900; font-size: 13px; }
+  .trophy.off { background: #f1f5f9; border-color: #cbd5e1; color: #94a3b8; }
+  .defi { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; background: #f1f5f9; border-radius: 12px; padding: 6px 10px; margin-bottom: 6px; }
+  .defi.ok { background: #ecfdf5; } .defi .di { font-size: 22px; text-align: center; } .defi .dt { font-weight: 800; font-size: 13px; }
+  .defi .dr { text-align: right; font-size: 12px; font-weight: 700; color: #475569; }
+  .bar { height: 7px; background: #e2e8f0; border-radius: 9px; margin-top: 4px; overflow: hidden; } .bar i { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #84cc16); }
+  .opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 2px; border-bottom: 1px solid #e2e8f0; font-weight: 800; }
+  .opt input[type=range] { width: 46%; accent-color: #ff8a1f; }
+  .card .lang.on { background: var(--yellow); }
+  .cuph { font-weight: 900; font-size: 15px; margin: 6px 0 0; text-align: center; }
+  .pods { display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin: 8px 0; }
+  .pod { width: 130px; text-align: center; } .pod .pm { font-size: 34px; } .pod .pnm { font-weight: 900; font-size: 13px; }
+  .pod .pst { background: linear-gradient(180deg, #fff, #e2e8f0); border: 3px solid; border-bottom: 0; border-radius: 10px 10px 0 0; font-weight: 900; padding-top: 8px; }
+  .pod.p1 .pst { height: 90px; } .pod.p2 .pst { height: 64px; } .pod.p3 .pst { height: 44px; }
+  .pod.me .pnm { color: var(--red); }
+  @media (max-width: 760px) { .picks { grid-template-columns: 1fr 1fr; } #tip { font-size: 14px; bottom: 100px; } #notice { top: 120px; font-size: 13px; } }
   #error { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: #1e293b; color: #fff; z-index: 20; text-align: center; padding: 20px; }
   @media (max-width: 760px) {
@@ -323,6 +359,8 @@
 <div id="standings"></div>
 
 <div id="toast"></div>
+<div id="notice"></div>
+<div id="tip"></div>
 <div id="count"></div>
 
 <div id="overlay"><div class="card" id="card"><h2>🐔 Caddie Rush</h2><p class="muted">Chargement… / Loading…</p></div></div>
@@ -552,12 +590,11 @@ const CIRCUITS = [
 MARKET.indoor = true;
 const circuitOf = n => CIRCUITS[(n - 1) % CIRCUITS.length];
 
-function levelConfig(mode, n) {
-  const tier = n - 1;
+function levelConfig(mode, n, tier = n - 1) {
   if (mode === 'market') {
     return {
-      mode, n, theme: circuitOf(n).theme, laps: LAPS, circuit: circuitOf(n), grip: circuitOf(n).grip,
-      name: circuitOf(n).name + (n > CIRCUITS.length ? ' ' + '★'.repeat(Math.min(Math.floor((n - 1) / CIRCUITS.length), 3)) : ''),
+      mode, n, tier, theme: circuitOf(n).theme, laps: LAPS, circuit: circuitOf(n), grip: circuitOf(n).grip,
+      name: circuitOf(n).name + (tier >= 4 ? ' ★★★' : tier >= 2 ? ' ★★' : tier >= 1 ? ' ★' : ''),
       length: 0,                                   // fixé quand le circuit est construit
       cruise: Math.min(33, 21 + tier * 2.2),
       rowGap: Math.max(15, 31 - tier * 3),
@@ -571,7 +608,7 @@ function levelConfig(mode, n) {
   const theme = THEMES[tier % THEMES.length];
   const loop = Math.floor(tier / THEMES.length);
   return {
-    mode, n, theme, laps: 1,
+    mode, n, tier, theme, laps: 1,
     name: theme.name + (loop > 0 ? ' ' + '★'.repeat(Math.min(loop, 3)) : ''),
     length: Math.min(1900, 1100 + tier * 120),
     cruise: Math.min(36, 18 + tier * 3),
@@ -3144,7 +3181,7 @@ function resetRivals(on) {
     const g = GRID_SLOT(slot++);
     Object.assign(b, { d: g.d, x: g.x, vx: 0, tx: g.x, speed: 0, air: 0, vy: 0, spinT: 0, spinDir: 1, turboT: 0, shieldT: 0,
       item: null, itemT: 0, bag: 0, finished: false, time: 0, think: Math.random() * 0.2, noise: rand(-2, 2), yaw: 0,
-      skill: b.def.skill * rand(0.98, 1.02), spinA: 0, hitCool: 0 });
+      skill: b.def.skill * rand(0.98, 1.02) * (1 + (CFG.tier || 0) * 0.012), spinA: 0, hitCool: 0 });
     b.mesh.visible = on;
     poseRival(b, 0);
   });
@@ -3261,7 +3298,7 @@ function updateRivals(dt) {
       const vis = b.mesh.visible;
       if (u.kind === 'course') {
         if (Math.abs(u.yOff - (b.air + 0.95)) > 1.15 || u.botMiss === b) continue;
-        if (Math.random() < 0.45) { u.botMiss = b; continue; }        // les bots ratent souvent
+        if (Math.random() < 0.65) { u.botMiss = b; continue; }        // les bots ratent souvent
         b.bag += 1;
         if (vis) { o.getWorldPosition(_v1); fxStar.burst(_v1, 8, 3, 0.5, 0.35, [0xffffff, 0xffe066], 1); }
         retire(o, 1.6); u.quick = true;                               // réapparaît vite pour les suivants
@@ -3415,7 +3452,7 @@ function playerHit(msg) {
   if (state !== 'playing') return;
   if (S.shieldT > 0) { S.shieldT = 0; sfx('hit'); toast(T('BOUCLIER ! 🛡️', 'SHIELDED! 🛡️'), 700); return; }
   if (S.invulnT > 0) return;
-  S.invulnT = 1.4; S.spinT = SPIN_DUR; S.spinDir = Math.random() < 0.5 ? -1 : 1;
+  S.invulnT = 1.4; S.spinT = SPIN_DUR; S.spinDir = Math.random() < 0.5 ? -1 : 1; S.hitsTaken++;
   S.vx += S.spinDir * 4; S.speed *= 0.5; S.camShake = 0.45; CH.scream = 0.8;
   sfx('hit'); sfx('scream');
   chicken.getWorldPosition(_v1);
@@ -3447,7 +3484,7 @@ function updateProjectiles(dt) {
     if (hit || p.life <= 0) {
       fxStar.burst(p.mesh.position, 16, 4, 0.5, 0.35, [0xffe066, 0xffffff, 0xffb300], 1);
       if (hit) {
-        if (hit.b) { spinRival(hit.b); if (!p.owner) { toast(T(`🥚 EN PLEIN SUR ${hit.b.def.name.toUpperCase()} !`, `🥚 SPLAT ON ${hit.b.def.name.toUpperCase()}!`), 900); sfx('hit'); } }
+        if (hit.b) { spinRival(hit.b); if (!p.owner) { statAdd('eggHits'); toast(T(`🥚 EN PLEIN SUR ${hit.b.def.name.toUpperCase()} !`, `🥚 SPLAT ON ${hit.b.def.name.toUpperCase()}!`), 900); sfx('hit'); } }
         else playerHit(`🥚 ${T('Œuf de', 'Egg from')} ${ownerName(p.owner)} !`);
       }
       scene.remove(p.mesh); PROJ.splice(i, 1);
@@ -3460,8 +3497,9 @@ function clearProjectiles() { for (const p of PROJ) scene.remove(p.mesh || p.rin
    SONS (synthétisés)
    ============================================================ */
 let actx = null, muted = false;
+let sfxOut = null;
 function initAudio() {
-  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); sfxOut = actx.createGain(); sfxOut.gain.value = SAVE.sfxVol; sfxOut.connect(actx.destination); } catch (e) {} }
   if (actx && actx.state === 'suspended') actx.resume();
 }
 function tone(freq, dur, type = 'square', vol = 0.06, when = 0, slideTo = null) {
@@ -3473,7 +3511,7 @@ function tone(freq, dur, type = 'square', vol = 0.06, when = 0, slideTo = null) 
   if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
   g.gain.setValueAtTime(vol, t0);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g).connect(actx.destination);
+  o.connect(g).connect(sfxOut);
   o.start(t0); o.stop(t0 + dur + 0.05);
 }
 function noise(dur, vol) {
@@ -3484,7 +3522,7 @@ function noise(dur, vol) {
   for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
   const src = actx.createBufferSource(), g = actx.createGain();
   src.buffer = buf; g.gain.value = vol;
-  src.connect(g).connect(actx.destination);
+  src.connect(g).connect(sfxOut);
   src.start();
 }
 function sfx(name) {
@@ -3712,7 +3750,7 @@ const trackName = tr => (tr ? tr.icon + ' ' + (LANG === 'en' && tr.nameEn || tr.
 const musicLabel = () => (SAVE.music === 'random' ? T('🎲 Aléatoire', '🎲 Shuffle') : trackName(musicTrack()));
 function musicBus() {
   if (!actx) return null;
-  if (!Music.bus) { Music.master = actx.createGain(); Music.master.gain.value = 0.55; Music.master.connect(actx.destination); Music.bus = makeBus(actx, Music.master); }
+  if (!Music.bus) { Music.master = actx.createGain(); Music.master.gain.value = 0.55 * SAVE.musicVol; Music.master.connect(actx.destination); Music.bus = makeBus(actx, Music.master); }
   return Music.bus;
 }
 Music.play = (fresh = true) => {
@@ -3745,12 +3783,14 @@ window.addEventListener('keydown', firstTouch, { once: true });
    SAUVEGARDE
    ============================================================ */
 const SAVE_KEY = 'caddieRush3';
-const SAVE = { wallet: 0, owned: [], v: 2, music: 'random', equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
+const SAVE = { wallet: 0, owned: [], v: 2, music: 'random', equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0,
+  stats: {}, defis: {}, cups: {}, musicVol: 0.8, sfxVol: 0.9, quality: 'high', tuto: 0 };
 try {
   const raw = JSON.parse(Portal.get(SAVE_KEY) || 'null');
   if (raw) { const def = Object.assign({}, SAVE.equip); Object.assign(SAVE, raw); SAVE.equip = Object.assign({}, def, raw.equip || {});
     if (!raw.musicV) { SAVE.music = 'random'; SAVE.musicV = 1; }
-    if (raw.v !== 2) { SAVE.v = 2; for (const k of ['tete', 'corps']) if (SAVE.equip[k] === 'none') SAVE.equip[k] = def[k]; SAVE.equip.pattes = 'robot'; } SAVE.best = Object.assign({ market: 0, descent: 0 }, raw.best || {}); }
+    if (raw.v !== 2) { SAVE.v = 2; for (const k of ['tete', 'corps']) if (SAVE.equip[k] === 'none') SAVE.equip[k] = def[k]; SAVE.equip.pattes = 'robot'; } SAVE.best = Object.assign({ market: 0, descent: 0 }, raw.best || {});
+    for (const k of ['stats', 'defis', 'cups']) SAVE[k] = Object.assign({}, raw[k] || {}); }
   else SAVE.best.descent = parseInt(localStorage.getItem('caddieRushBest2') || '0', 10) || 0;
 } catch (e) {}
 function persist() { Portal.set(SAVE_KEY, JSON.stringify(SAVE)); }
@@ -3783,9 +3823,9 @@ function applyTheme(th) {
   buildingMats.forEach(m => (m.emissiveIntensity = th.windows));
 }
 
-function prepareLevel(mode, n) {
+function prepareLevel(mode, n, tier) {
   MODE = mode;
-  CFG = levelConfig(mode, n);
+  CFG = levelConfig(mode, n, tier);
   if (mode === 'market') {
     useCircuit(CFG.circuit);
     snow.visible = !!CFG.circuit.snow;
@@ -3809,7 +3849,7 @@ function prepareLevel(mode, n) {
     countdown: 3, lastCount: 4, paused: false, camX: 0, credited: 0, revived: false, doubled: false,
   });
   if (mode === 'market') { const g = GRID_SLOT(PLAYER_SLOT); S.d = g.d; S.x = g.x; S.camX = g.x * 0.6; }
-  S.finishTime = 0; S.place = 0;
+  S.finishTime = 0; S.place = 0; S.hitsTaken = 0; S.cupAwarded = false; S.steerT = 0; S.tier = CFG.tier !== undefined ? CFG.tier : n - 1;
   S.z = -S.d;
   clearEnts(); clearFlyers(); clearConfetti(); clearProjectiles();
   resetRivals(mode === 'market');
@@ -3833,17 +3873,17 @@ function prepareLevel(mode, n) {
   setCartPose(0);
   buildProfile();
   $('minimap').style.display = mode === 'market' ? 'block' : 'none';
-  $('lvlName').textContent = `${T('Niveau', 'Level')} ${n} · ${CFG.name}`;
+  $('lvlName').textContent = mode === 'market' ? (RUN.kind === 'cup' ? `${RUN.cup.icon} ${RUN.cup.name} ${RUN.race + 1}/${CIRCUITS.length} · ${CFG.name}` : `${CFG.circuit.icon} ${CFG.name}`) : `${T('Niveau', 'Level')} ${n} · ${CFG.name}`;
   updateItemUI();
   updateHUD();
 }
 
-function startLevel(mode, n) {
+function startLevel(mode, n, tier) {
   initAudio();
   Music.stop(); Music.muffle(false);
   Music.oneShot(INST.chime, [midiOf('E5'), midiOf('C5'), midiOf('G4'), midiOf('C5')]);
   leaveWardrobeCamera();
-  prepareLevel(mode, n);
+  prepareLevel(mode, n, tier);
   setUI(true);
   state = 'countdown';
   overlay.className = 'hidden';
@@ -4155,12 +4195,124 @@ function showCard(html, action, cls = '', cardCls = 'card') {
 }
 
 function setUI(on) { document.body.classList.toggle('ui-off', !on); }
+/* --- Parcours : coupes, course libre --- */
+const CUPS = [
+  { id: 'poussin', icon: '🐣', name: T('Coupe Poussin', 'Chick Cup'), tier: 0, stars: 1, reward: [60, 40, 25] },
+  { id: 'poule', icon: '🐔', name: T('Coupe Poule', 'Hen Cup'), tier: 2, stars: 2, reward: [100, 70, 45] },
+  { id: 'coq', icon: '🐓', name: T("Coupe Coq d'Or", 'Golden Rooster Cup'), tier: 4, stars: 3, reward: [180, 120, 80] },
+];
+const CUP_PTS = [15, 12, 10, 8, 6, 4, 2, 1];
+const MEDAL = ['🥇', '🥈', '🥉'];
+let RUN = { kind: 'level' };
+function startCup(cup) {
+  RUN = { kind: 'cup', cup, race: 0, pts: {} };
+  afterBreak(() => { S.bank = 0; startLevel('market', 1, cup.tier); });
+}
+function startFree(ci) {
+  RUN = { kind: 'free', ci };
+  afterBreak(() => { S.bank = 0; startLevel('market', ci + 1, 1); });
+}
+function cupTable() {
+  return Object.entries(RUN.pts).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.pts - a.pts);
+}
+
+/* --- Défis --- */
+const DEFIS = [
+  { id: 'win', icon: '🥇', fr: 'Termine une course à la 1re place', en: 'Win a race', goal: 1, k: 'wins', reward: 50 },
+  { id: 'podium5', icon: '🏆', fr: 'Monte 5 fois sur le podium', en: 'Finish on the podium 5 times', goal: 5, k: 'podiums', reward: 60 },
+  { id: 'bag30', icon: '🛍️', fr: 'Ramasse 30 courses en une course', en: 'Grab 30 groceries in one race', goal: 30, k: 'bagRace', reward: 40 },
+  { id: 'gold5', icon: '✨', fr: 'Ramasse 5 courses dorées en une course', en: 'Grab 5 golden groceries in one race', goal: 5, k: 'goldRace', reward: 40 },
+  { id: 'ultra', icon: '💜', fr: 'Déclenche 5 ultra-turbos (étincelles violettes)', en: 'Trigger 5 ultra turbos (purple sparks)', goal: 5, k: 'ultra', reward: 40 },
+  { id: 'eggs', icon: '🥚', fr: 'Touche 10 poules avec des œufs', en: 'Hit 10 chickens with eggs', goal: 10, k: 'eggHits', reward: 40 },
+  { id: 'clean', icon: '😇', fr: 'Termine une course sans te faire toucher', en: 'Finish a race without getting hit', goal: 1, k: 'clean', reward: 50 },
+  { id: 'jumps', icon: '🦘', fr: 'Fais 25 sauts sur les rampes', en: 'Do 25 ramp jumps', goal: 25, k: 'jumps', reward: 30 },
+  { id: 'circuits', icon: '🗺️', fr: 'Termine les 4 circuits', en: 'Finish all 4 tracks', goal: 4, k: 'circuits', reward: 50 },
+  { id: 'cup_poussin', icon: '🐣', fr: 'Gagne la Coupe Poussin', en: 'Win the Chick Cup', goal: 1, k: 'cup_poussin', reward: 60 },
+  { id: 'cup_poule', icon: '🐔', fr: 'Gagne la Coupe Poule', en: 'Win the Hen Cup', goal: 1, k: 'cup_poule', reward: 100 },
+  { id: 'cup_coq', icon: '🐓', fr: "Gagne la Coupe Coq d'Or", en: 'Win the Golden Rooster Cup', goal: 1, k: 'cup_coq', reward: 180 },
+  { id: 'descent3', icon: '🏔', fr: 'Termine le niveau 3 de la Descente', en: 'Clear Downhill level 3', goal: 3, k: 'descentLvl', reward: 50 },
+];
+const statOf = k => (k === 'circuits' ? Object.keys(SAVE.stats.circ || {}).length : SAVE.stats[k] || 0);
+function statAdd(k, n = 1) { SAVE.stats[k] = (SAVE.stats[k] || 0) + n; checkDefis(); }
+function statMax(k, v) { if (v > (SAVE.stats[k] || 0)) { SAVE.stats[k] = v; checkDefis(); } }
+function checkDefis() {
+  for (const d of DEFIS) {
+    if (SAVE.defis[d.id] || statOf(d.k) < d.goal) continue;
+    SAVE.defis[d.id] = Date.now();
+    SAVE.wallet += d.reward;
+    notice(`🏆 ${T('Défi réussi', 'Challenge done')} : ${d.icon} ${T(d.fr, d.en)} <b>+${d.reward} 🛍️</b>`);
+  }
+  persist();
+}
+const noticeQ = [];
+let noticeBusy = false;
+function notice(html) {
+  noticeQ.push(html);
+  if (noticeBusy) return;
+  const next = () => {
+    const h = noticeQ.shift(), el = $('notice');
+    if (!h) { noticeBusy = false; el.classList.remove('show'); return; }
+    noticeBusy = true; el.innerHTML = h; el.classList.toggle('low', !overlay.classList.contains('hidden') || state === 'finished'); el.classList.add('show'); sfx('buy');
+    setTimeout(() => { el.classList.remove('show'); setTimeout(next, 350); }, 2800);
+  };
+  next();
+}
+
+/* --- Tutoriel (première course) --- */
+const TUTO_STEPS = [
+  { k: 'steer', fr: IS_TOUCH ? '👈👉 Touche à gauche ou à droite de l’écran pour diriger' : '⬅️➡️ Dirige ta poule avec ← → (ou A / D)', en: IS_TOUCH ? '👈👉 Tap the left or right side of the screen to steer' : '⬅️➡️ Steer with ← → (or A / D)' },
+  { k: 'course', fr: '🛍️ Ramasse les courses qui flottent sur la piste !', en: '🛍️ Grab the groceries floating on the track!' },
+  { k: 'box', fr: '🎁 Fonce dans une boîte mystère pour gagner un objet', en: '🎁 Drive through a mystery box to get an item' },
+  { k: 'item', fr: IS_TOUCH ? '👆 Touche la case en bas à gauche pour utiliser ton objet' : '⬆️ Utilise ton objet avec ↑ ou Espace', en: IS_TOUCH ? '👆 Tap the box at the bottom left to use your item' : '⬆️ Use your item with ↑ or Space' },
+  { k: 'drift', fr: IS_TOUCH ? '🔥 Garde le doigt appuyé dans un virage pour déraper… puis lâche : mini-turbo !' : '🔥 Maintiens Maj (ou ↓) en tournant pour déraper… puis lâche : mini-turbo !', en: IS_TOUCH ? '🔥 Keep your finger down in a turn to drift… then let go: mini-turbo!' : '🔥 Hold Shift (or ↓) while turning to drift… then let go: mini-turbo!' },
+  { k: 'end', fr: '🏆 Bravo, tu sais tout ! Vise le podium !', en: '🏆 Well done, you know it all! Go for the podium!' },
+];
+function tutoStart() {
+  if (SAVE.tuto || MODE !== 'market') { TUTO.active = false; return; }
+  TUTO.active = true; TUTO.step = 0; TUTO.done = {}; TUTO.endT = 0;
+  showTip();
+}
+function showTip() {
+  const st = TUTO_STEPS[TUTO.step], el = $('tip');
+  if (!TUTO.active || !st) { el.classList.remove('show'); return; }
+  el.innerHTML = `<small>${T('TUTO', 'TUTORIAL')} ${TUTO.step + 1}/${TUTO_STEPS.length}</small>${T(st.fr, st.en)}`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function tutoDone(k) {
+  if (!TUTO.active) return;
+  TUTO.done[k] = true;
+  let moved = false;
+  while (TUTO.active && TUTO_STEPS[TUTO.step] && TUTO.done[TUTO_STEPS[TUTO.step].k]) { TUTO.step++; moved = true; }
+  if (moved) { sfx('lap'); if (TUTO_STEPS[TUTO.step] && TUTO_STEPS[TUTO.step].k === 'end') TUTO.endT = 4; showTip(); }
+}
+function tutoTick(dt) {
+  if (!TUTO.active) return;
+  if (TUTO.endT > 0 && (TUTO.endT -= dt) <= 0) tutoFinish();
+}
+function tutoFinish() {
+  TUTO.active = false; SAVE.tuto = 1; persist(); $('tip').classList.remove('show');
+}
+
+function multiPanelHtml(n) { return `<p>${T('Bientôt', 'Soon')}</p>`; }
+
+/* --- Options --- */
+function applyQuality() {
+  const low = SAVE.quality === 'low';
+  renderer.setPixelRatio(low ? Math.min(window.devicePixelRatio, 1) * (IS_TOUCH ? 0.85 : 1) : Math.min(window.devicePixelRatio, IS_TOUCH ? 1.5 : 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  sun.castShadow = !low;
+}
+function applyVolumes() {
+  if (Music.master) Music.master.gain.value = 0.55 * SAVE.musicVol;
+  if (sfxOut) sfxOut.gain.value = SAVE.sfxVol;
+}
+
 /* --- Menu d'accueil --- */
-const HOME = { row: 0, sub: { solo: 0, multi: 0 }, bottom: 0, panel: null };
+const HOME = { row: 0, sub: { solo: 0, multi: 0 }, bottom: 0, panel: null, pick: 0 };
 function homeRows() {
   return [
     { id: 'solo', icon: '🐔', label: T('1 JOUEUR', '1 PLAYER'),
-      subs: [{ id: 'market', html: `🛒<span class="lbl">&nbsp;${T('Supermarché', 'Supermarket')}</span>` }, { id: 'descent', html: `🏔<span class="lbl">&nbsp;${T('Descente', 'Downhill')}</span>` }] },
+      subs: [{ id: 'cups', html: `🏆<span class="lbl">&nbsp;${T('Coupe', 'Cup')}</span>` }, { id: 'free', html: `🏁<span class="lbl">&nbsp;${T('Course', 'Race')}</span>` }, { id: 'descent', html: `🏔<span class="lbl">&nbsp;${T('Descente', 'Downhill')}</span>` }] },
     { id: 'multi', icon: '🐔🐔🐔🐔', quad: true, label: T('PLUSIEURS JOUEURS', 'MULTIPLAYER'),
       subs: [2, 3, 4].map(n => ({ id: n, html: `${n}<small>${T('J', 'P')}</small>` })) },
     { id: 'online', icon: '🌐', label: T('EN LIGNE', 'ONLINE PLAY') },
@@ -4168,20 +4320,23 @@ function homeRows() {
   ];
 }
 function homeBottoms() {
+  const n = DEFIS.filter(d => SAVE.defis[d.id]).length;
   return [
     { id: 'wardrobe', icon: '🐔', label: T('Vestiaire', 'Wardrobe') },
-    { id: 'music', icon: '🎵', label: musicLabel() },
-    { id: 'lang', icon: LANG === 'fr' ? '🇬🇧' : '🇫🇷', label: LANG === 'fr' ? 'English' : 'Français' },
+    { id: 'defis', icon: '🏆', label: `${T('Défis', 'Challenges')} ${n}/${DEFIS.length}` },
+    { id: 'options', icon: '⚙️', label: 'Options' },
     { id: 'help', icon: '❓', label: T('Commandes', 'Controls') },
   ];
 }
 function showMenu() {
   state = 'menu';
+  RUN = { kind: 'level' };
   Portal.gameplay(false);
   if (actx && !Music.on) Music.play();
   Music.muffle(false);
   setUI(false);
   leaveWardrobeCamera();
+  resetRivals(false);
   HOME.panel = null;
   showCard('', () => homeActivate(), 'home', 'card home');
   renderHome();
@@ -4213,28 +4368,34 @@ function renderHome() {
   card.querySelectorAll('.hb').forEach(el => {
     el.onclick = () => { HOME.row = rows.length; HOME.bottom = +el.dataset.bot; homeActivate(); };
   });
+  card.querySelectorAll('.pick').forEach(el => {
+    el.onclick = () => { HOME.pick = +el.dataset.pick; homePick(); };
+    if (!IS_TOUCH) el.onmouseenter = () => { if (HOME.pick !== +el.dataset.pick) { HOME.pick = +el.dataset.pick; card.querySelectorAll('.pick').forEach(p => p.classList.toggle('sel', +p.dataset.pick === HOME.pick)); } };
+  });
   const back = $('homeBack'); if (back) back.onclick = () => { HOME.panel = null; sfx('tick'); renderHome(); };
+  if (HOME.panel === 'options') bindOptions();
+}
+function homePick() {
+  if (HOME.panel === 'cups') { sfx('go'); startCup(CUPS[HOME.pick]); }
+  else if (HOME.panel === 'free') { sfx('go'); startFree(HOME.pick); }
 }
 function homeActivate() {
   if (state !== 'menu') return;
   initAudio();
+  if (HOME.panel === 'cups' || HOME.panel === 'free') return homePick();
   const rows = homeRows();
   if (HOME.row >= rows.length) {
     const b = homeBottoms()[HOME.bottom].id;
     if (b === 'wardrobe') return openWardrobe();
-    if (b === 'lang') { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); return; }
-    if (b === 'music') {
-      const ids = ['random', ...TRACKS.map(tr => tr.id), 'off'];
-      SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
-      Music.play();
-      if (SAVE.music === 'random' && musicTrack()) toast('🎵 ' + trackName(musicTrack()), 1200);
-      return renderHome();
-    }
-    if (b === 'help') { HOME.panel = HOME.panel === 'help' ? null : 'help'; sfx('tick'); return renderHome(); }
-    return;
+    HOME.panel = HOME.panel === b ? null : b; sfx('tick'); return renderHome();
   }
   const r = rows[HOME.row];
-  if (r.id === 'solo') { sfx('go'); return playNew(r.subs[HOME.sub.solo].id); }
+  if (r.id === 'solo') {
+    const sub = r.subs[HOME.sub.solo].id;
+    if (sub === 'descent') { sfx('go'); RUN = { kind: 'level' }; return playNew('descent'); }
+    HOME.panel = sub; HOME.pick = 0; sfx('tick'); return renderHome();
+  }
+  if (r.id === 'multi') { HOME.panel = 'multi'; sfx('tick'); return renderHome(); }
   HOME.panel = HOME.panel === r.id ? null : r.id;
   sfx('tick');
   renderHome();
@@ -4243,6 +4404,11 @@ function homeKey(k) {
   const nRows = homeRows().length;
   const r = homeRows()[HOME.row];
   if (k === 'escape' || k === 'backspace') { if (HOME.panel) { HOME.panel = null; renderHome(); } return; }
+  if (HOME.panel === 'cups' || HOME.panel === 'free') {
+    const n = HOME.panel === 'cups' ? CUPS.length : CIRCUITS.length;
+    HOME.pick = (HOME.pick + (k === 'arrowleft' || k === 'arrowup' ? -1 : 1) + n) % n;
+    sfx('tick'); renderHome(); return;
+  }
   if (k === 'arrowup' || k === 'arrowdown') {
     HOME.row = (HOME.row + (k === 'arrowup' ? -1 : 1) + nRows + 1) % (nRows + 1);
     HOME.panel = null;
@@ -4261,47 +4427,96 @@ function timeAgo(t) {
   const h = Math.floor(m / 60);
   return T(`il y a ${h} h ${String(m % 60).padStart(2, '0')}`, `${h} h ${String(m % 60).padStart(2, '0')} ago`);
 }
+const stars = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 function homePanelHtml(id) {
   const back = `<button id="homeBack" class="secondary" style="margin:10px 0 0">◀ ${T('Retour', 'Back')}</button>`;
+  const panel = (title, body, cls = '') => `<div class="home-panel ${cls}"><h3>${title}</h3><div class="pbody">${body}</div>${back}</div>`;
+  if (id === 'cups') {
+    return panel(`🏆 ${T('Choisis ta coupe', 'Pick a cup')}`, `<p class="muted">${T('4 courses, une sur chaque circuit. Points : 15 · 12 · 10 · 8 · 6 · 4 · 2 · 1', '4 races, one on each track. Points: 15 · 12 · 10 · 8 · 6 · 4 · 2 · 1')}</p>
+      <div class="picks">${CUPS.map((c, i) => { const best = (SAVE.cups || {})[c.id]; return `<div class="pick${HOME.pick === i ? ' sel' : ''}" data-pick="${i}">
+        <div class="pi">${c.icon}</div><div class="pn">${c.name}</div><div class="ps">${stars(c.stars)}</div>
+        <div class="pc">${CIRCUITS.map(ci => ci.icon).join(' ')}</div><div class="pb">${best ? MEDAL[best - 1] + ' ' + T('meilleur', 'best') : T('pas encore de trophée', 'no trophy yet')}</div></div>`; }).join('')}</div>`, 'wide');
+  }
+  if (id === 'free') {
+    const tips = { market: T('Le classique', 'The classic'), frozen: T('Sol glissant !', 'Slippery floor!'), night: T('Néons et virages', 'Neon & curves'), depot: T('Palettes partout', 'Pallets everywhere') };
+    return panel(`🏁 ${T('Course libre : choisis un circuit', 'Free race: pick a track')}`, `<div class="picks four">${CIRCUITS.map((c, i) => `<div class="pick${HOME.pick === i ? ' sel' : ''}" data-pick="${i}">
+        <div class="pi">${c.icon}</div><div class="pn">${c.name}</div><div class="pb">${tips[c.key]}</div>
+        <div class="pb">${(SAVE.stats.circ || {})[c.key] ? '✅ ' + T('terminé', 'finished') : ''}</div></div>`).join('')}</div>`, 'wide');
+  }
   if (id === 'history') {
     const h = recentRaces();
+    const cname = e => { const c = CIRCUITS.find(c => c.key === e.circ); return e.mode === 'market' ? (c ? c.icon + ' ' + c.name : '🛒 ' + T('Supermarché', 'Supermarket')) : '🏔 ' + T('Descente', 'Downhill') + ' ' + T('niv.', 'lvl') + ' ' + e.lvl; };
     const body = h.length ? `
       <div class="hist-sum"><span>🏁 ${h.length} ${T(h.length > 1 ? 'courses' : 'course', h.length > 1 ? 'races' : 'race')}</span>
         <span>🛍️ ${h.reduce((a, e) => a + e.bag, 0)} ${T('courses ramassées', 'groceries grabbed')}</span>
         <span>🏆 ${Math.max(...h.map(e => e.score))} pts</span></div>
       ${h.map(e => `<div class="hist${e.res === 'crash' ? ' crash' : ''}">
-        <div class="hi">${e.mode === 'market' ? '🛒' : '🏔'}</div>
-        <div class="ht">${e.res === 'crash' ? T('💥 Crash', '💥 Crash') : T('🏁 Arrivée', '🏁 Finished')} · ${e.mode === 'market' ? T('Supermarché', 'Supermarket') : T('Descente', 'Downhill')} ${T('niv.', 'lvl')} ${e.lvl}</div>
+        <div class="hi">${e.place ? (MEDAL[e.place - 1] || '🏁') : e.mode === 'market' ? '🛒' : '🏔'}</div>
+        <div class="ht">${e.res === 'crash' ? '💥 Crash' : e.place ? ordinal(e.place) + ' ' + T('place', 'place') : T('🏁 Arrivée', '🏁 Finished')} · ${cname(e)}</div>
         <div class="hs">${e.score} pts</div>
         <div class="hd">⏱ ${fmtTime(e.time)} · 🛍️ ${e.bag}${e.gold ? ` (${e.gold} ✨)` : ''}${e.lap ? ` · ${T('meilleur tour', 'best lap')} ${e.lap.toFixed(1)} s` : ''}</div>
         <div class="hw">${timeAgo(e.t)}</div>
       </div>`).join('')}`
       : `<p>${T("Aucune course ces dernières 24 heures.", 'No races in the last 24 hours.')}</p><p class="muted">${T('Lance une partie en <b>1 JOUEUR</b> : chaque course apparaîtra ici pendant 24 h.', 'Start a <b>1 PLAYER</b> race: each race shows up here for 24 h.')}</p>`;
-    return `<div class="home-panel"><h3>📜 ${T('Dernières courses (24 h)', 'Recent races (24 h)')}</h3><div class="pbody">${body}</div>${back}</div>`;
+    return panel(`📜 ${T('Dernières courses (24 h)', 'Recent races (24 h)')}`, body);
   }
   if (id === 'multi') {
     const n = [2, 3, 4][HOME.sub.multi];
-    return `<div class="home-panel"><h3>🐔 ${T(`${n} joueurs`, `${n} players`)} <span class="soon">${T('Bientôt', 'Soon')}</span></h3><div class="pbody">
-      <p>${T(`Écran partagé à <b>${n} poules</b> sur le même appareil : chacun son caddie, chacun ses courses !`, `Split screen with <b>${n} chickens</b> on the same device: everyone gets a cart and their own groceries!`)}</p>
-      <p class="muted">${T('Ce mode est en préparation.', 'This mode is in the works.')}</p></div>${back}</div>`;
+    return panel(`🐔 ${T(`${n} joueurs`, `${n} players`)} · ${T('écran partagé', 'split screen')}`, multiPanelHtml(n));
   }
   if (id === 'online') {
-    return `<div class="home-panel"><h3>🌐 ${T('En ligne', 'Online play')} <span class="soon">${T('Bientôt', 'Soon')}</span></h3><div class="pbody">
+    return panel(`🌐 ${T('En ligne', 'Online play')} <span class="soon">${T('Bientôt', 'Soon')}</span>`, `
       <p>${T("Affronte d'autres poules du monde entier dans le supermarché.", 'Race chickens from all over the world in the supermarket.')}</p>
-      <p class="muted">${T('Ce mode demande un serveur de jeu : il est en préparation.', 'This mode needs a game server: it is in the works.')}</p></div>${back}</div>`;
+      <p class="muted">${T("Ce mode a besoin d'un serveur de jeu sur Internet pour relier les joueurs : il sera ajouté quand le jeu sera publié.", 'This mode needs an online game server to connect players: it will be added once the game is published.')}</p>
+      <p>${T('En attendant, joue à plusieurs sur le même écran avec <b>PLUSIEURS JOUEURS</b> !', 'Meanwhile, play together on one screen with <b>MULTIPLAYER</b>!')}</p>`);
+  }
+  if (id === 'defis') {
+    const cups = CUPS.map(c => { const b = (SAVE.cups || {})[c.id]; return `<span class="trophy${b ? '' : ' off'}">${b ? MEDAL[b - 1] : '🏆'} ${c.name}</span>`; }).join('');
+    return panel(`🏆 ${T('Défis & trophées', 'Challenges & trophies')}`, `<div class="trophies">${cups}</div>
+      ${DEFIS.map(d => { const v = Math.min(statOf(d.k), d.goal), ok = SAVE.defis[d.id]; return `<div class="defi${ok ? ' ok' : ''}">
+        <div class="di">${ok ? '✅' : d.icon}</div><div class="dt">${T(d.fr, d.en)}<div class="bar"><i style="width:${v / d.goal * 100}%"></i></div></div>
+        <div class="dr">${ok ? T('Réussi', 'Done') : `${v}/${d.goal}`}<br><b>+${d.reward} 🛍️</b></div></div>`; }).join('')}`);
+  }
+  if (id === 'options') {
+    const q = SAVE.quality === 'low';
+    return panel('⚙️ Options', `
+      <div class="opt"><span>🎵 ${T('Musique', 'Music')}</span><button class="lang" id="oMusic">${musicLabel()} ▸</button></div>
+      <div class="opt"><span>🔊 ${T('Volume musique', 'Music volume')}</span><input type="range" id="oMV" min="0" max="100" value="${Math.round(SAVE.musicVol * 100)}"></div>
+      <div class="opt"><span>🔉 ${T('Volume effets', 'Sound effects')}</span><input type="range" id="oSV" min="0" max="100" value="${Math.round(SAVE.sfxVol * 100)}"></div>
+      <div class="opt"><span>🖥️ ${T('Graphismes', 'Graphics')}</span><span><button class="lang${q ? '' : ' on'}" id="oQH">${T('Beaux', 'High')}</button> <button class="lang${q ? ' on' : ''}" id="oQL">${T('Rapides', 'Fast')}</button></span></div>
+      <div class="opt"><span>🌐 ${T('Langue', 'Language')}</span><button class="lang" id="oLang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
+      <div class="opt"><span>🎓 ${T('Tutoriel', 'Tutorial')}</span><button class="lang" id="oTuto">${SAVE.tuto ? T('Le revoir', 'Replay it') : T('Activé', 'On')}</button></div>
+      <p class="muted">${T('« Rapides » : moins de détails et pas d’ombres, pour les téléphones lents.', '“Fast”: fewer details and no shadows, for slower phones.')}</p>`);
   }
   if (id === 'help') {
-    return `<div class="home-panel"><h3>❓ ${T('Commandes', 'Controls')}</h3><div class="pbody">
+    return panel(`❓ ${T('Commandes', 'Controls')}`, `
       <p><span class="keys">←</span><span class="keys">→</span> / <span class="keys">A</span><span class="keys">D</span> ${T('diriger', 'steer')}<br>
+      <span class="keys">${T('Maj', 'Shift')}</span> / <span class="keys">↓</span> ${T('déraper en tournant (mini-turbo), freiner tout droit', 'drift while turning (mini-turbo), brake when straight')}<br>
       <span class="keys">↑</span> / <span class="keys">${T('Espace', 'Space')}</span> ${T('utiliser l’objet', 'use item')}<br>
       <span class="keys">P</span> pause · <span class="keys">M</span> ${T('couper le son', 'mute')}<br>
-      📱 ${T('mobile : touchez à gauche / à droite', 'mobile: tap left / right')}</p>
-      <p>${T('🎁 Boîtes mystère : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant à courses', '🎁 Mystery boxes: 🚀 Turbo · 🛡️ Shield · 🔧 New wheel · 🧲 Grocery magnet')}<br>
+      📱 ${T('mobile : touchez à gauche / à droite, gardez appuyé dans un virage pour déraper', 'mobile: tap left / right, hold in a turn to drift')}</p>
+      <p>${T('🎁 Objets : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant · 🥚 Œuf (à lancer) · 🍌 Banane (à poser) · 📢 Cocorico (fait tourner les poules autour)', '🎁 Items: 🚀 Turbo · 🛡️ Shield · 🔧 New wheel · 🧲 Magnet · 🥚 Egg (throw) · 🍌 Banana (drop) · 📢 Cock-a-doodle (spins nearby chickens)')}<br>
       ${T('🟧 dalle boost · 🪵 rampe = saut !', '🟧 boost pad · 🪵 ramp = jump!')}</p>
       <p>${T('Menu : <span class="keys">↑</span><span class="keys">↓</span> choisir · <span class="keys">←</span><span class="keys">→</span> option · <span class="keys">Entrée</span> valider', 'Menu: <span class="keys">↑</span><span class="keys">↓</span> select · <span class="keys">←</span><span class="keys">→</span> option · <span class="keys">Enter</span> confirm')}</p>
-      <p class="muted">🏆 ${T('Records', 'Best')} : ${T('Supermarché', 'Supermarket')} ${SAVE.best.market || 0} · ${T('Descente', 'Downhill')} ${SAVE.best.descent || 0}</p></div>${back}</div>`;
+      <p class="muted">🏆 ${T('Records', 'Best')} : ${T('Supermarché', 'Supermarket')} ${SAVE.best.market || 0} · ${T('Descente', 'Downhill')} ${SAVE.best.descent || 0}</p>`);
   }
   return '';
+}
+function bindOptions() {
+  const on = (id, ev, fn) => { const el = $(id); if (el) el[ev] = fn; };
+  on('oMusic', 'onclick', () => {
+    const ids = ['random', ...TRACKS.map(tr => tr.id), 'off'];
+    SAVE.music = ids[(ids.indexOf(SAVE.music) + 1) % ids.length]; persist();
+    initAudio(); Music.play(); applyVolumes();
+    $('oMusic').textContent = `${musicLabel()} ▸`;
+  });
+  on('oMV', 'oninput', e => { SAVE.musicVol = e.target.value / 100; applyVolumes(); persist(); });
+  on('oSV', 'oninput', e => { SAVE.sfxVol = e.target.value / 100; applyVolumes(); persist(); });
+  on('oSV', 'onchange', () => sfx('course'));
+  on('oQH', 'onclick', () => { SAVE.quality = 'high'; persist(); applyQuality(); renderHome(); });
+  on('oQL', 'onclick', () => { SAVE.quality = 'low'; persist(); applyQuality(); renderHome(); });
+  on('oLang', 'onclick', () => { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); });
+  on('oTuto', 'onclick', () => { SAVE.tuto = 0; persist(); toast(T('Tutoriel activé 🎓', 'Tutorial on 🎓')); renderHome(); });
 }
 
 /* --- Historique des courses (24 h) --- */
@@ -4309,7 +4524,8 @@ const DAY = 24 * 3600 * 1000;
 function recentRaces() { return (SAVE.hist || []).filter(e => Date.now() - e.t < DAY).sort((a, b) => b.t - a.t); }
 function logRace(res, score) {
   const e = { t: Date.now(), mode: MODE, lvl: S.level, res, score, bag: S.bag.length, gold: S.bag.filter(b => b.gold).length,
-    time: +S.elapsed.toFixed(1), lap: MODE === 'market' && S.lapTimes.length ? +Math.min(...S.lapTimes).toFixed(2) : 0 };
+    time: +S.elapsed.toFixed(1), lap: MODE === 'market' && S.lapTimes.length ? +Math.min(...S.lapTimes).toFixed(2) : 0,
+    circ: MODE === 'market' ? CFG.circuit.key : '', place: res === 'finish' ? S.place || 0 : 0 };
   SAVE.hist = [e, ...recentRaces()].slice(0, 40);
   S.histT = e.t;
   persist();
@@ -4334,22 +4550,14 @@ function bindReward(id, onSuccess) {
   };
 }
 function showLevelDone() {
-  const next = levelConfig(MODE, S.level + 1);
   const isRecord = saveBest(S.bank);
   if (isRecord) Portal.happy();
   logRace('finish', S.bank);
   const lapsHtml = MODE === 'market' && S.lapTimes.length ? `<div><span>🏁 ${T('Meilleur tour', 'Best lap')}</span><b>${Math.min(...S.lapTimes).toFixed(2)} s</b></div>` : '';
   const golds = S.bag.filter(b => b.gold).length;
   const race = MODE === 'market' && S.standings;
-  const medal = race ? ['🥇', '🥈', '🥉'][S.place - 1] || '🏁' : '';
-  const rankHtml = race ? `
-    <div class="podium">${medal} ${ordinalHtml(S.place)} ${T('place', 'place')}</div>
-    <div class="res2"><table class="rank">${S.standings.map((r, i) => `<tr class="${r.me ? 'me' : ''}"><td>${ordinal(i + 1)}</td><td class="n"><i style="background:${r.css}"></i>${r.name}</td><td class="r">${fmtTime(r.time)}</td><td class="r">🛍️ ${r.bag}</td></tr>`).join('')}</table>` : '';
-  const statsEnd = race ? '</div>' : '';
-  showCard(`
-    <h2>🏁 ${MODE === 'market' ? T('Course terminée !', 'Race complete!') : T(`Niveau ${S.level} terminé !`, `Level ${S.level} complete!`)}</h2>
-    <p class="muted">${CFG.name}</p>
-    ${rankHtml}
+  const cup = race && RUN.kind === 'cup';
+  const statsHtml = `
     <div class="stats">
       <div><span>⏱ ${T('Temps', 'Time')}</span><b>${fmtTime(S.elapsed)}</b></div>
       ${lapsHtml}
@@ -4358,19 +4566,80 @@ function showLevelDone() {
       <div><span>⚡ ${T('Bonus temps', 'Time bonus')}</span><b>${S.timeBonus} pts</b></div>
       <div><span>🏆 ${race ? T(`Bonus ${ordinal(S.place)} place`, `${ordinal(S.place)} place bonus`) : T('Bonus niveau', 'Level bonus')}</span><b>${S.levelBonus} pts</b></div>
       <div class="total"><span>${T('Score total', 'Total score')}</span><span>${S.bank}</span></div>
-    </div>${statsEnd}
+    </div>`;
+  const rankTable = rows => `<table class="rank">${rows}</table>`;
+  let body, flow;
+  if (race) {
+    const medal = MEDAL[S.place - 1] || '🏁';
+    const left = rankTable(S.standings.map((r, i) => `<tr class="${r.me ? 'me' : ''}"><td>${ordinal(i + 1)}</td><td class="n"><i style="background:${r.css}"></i>${r.name}</td><td class="r">${fmtTime(r.time)}</td><td class="r">🛍️ ${r.bag}</td></tr>`).join(''));
+    let right = statsHtml;
+    if (cup) {
+      if (!S.cupAwarded) {
+        S.cupAwarded = true;
+        S.standings.forEach((r, i) => { const e = RUN.pts[r.name] || (RUN.pts[r.name] = { pts: 0, css: r.css, me: !!r.me }); e.pts += CUP_PTS[i]; e.last = CUP_PTS[i]; });
+      }
+      right = `<div class="cuph">${RUN.cup.icon} ${RUN.cup.name} · ${T('course', 'race')} ${RUN.race + 1}/${CIRCUITS.length}</div>` +
+        rankTable(cupTable().map((r, i) => `<tr class="${r.me ? 'me' : ''}"><td>${ordinal(i + 1)}</td><td class="n"><i style="background:${r.css}"></i>${r.name}</td><td class="r">+${r.last}</td><td class="r"><b>${r.pts}</b></td></tr>`).join('')) +
+        `<p class="muted">⏱ ${fmtTime(S.elapsed)} · 🛍️ ${S.bag.length} · ${T('score', 'score')} ${S.bank}</p>`;
+      const last = RUN.race >= CIRCUITS.length - 1, nx = CIRCUITS[RUN.race + 1];
+      flow = { html: `<button id="go">${last ? T('PODIUM 🏆', 'PODIUM 🏆') : `${T('COURSE SUIVANTE', 'NEXT RACE')} : ${nx.icon} ${nx.name}`}</button> <button id="menuBtn" class="secondary">${T('Abandonner', 'Quit')}</button>`,
+        action: () => (last ? showCupEnd() : afterBreak(() => { RUN.race++; startLevel('market', RUN.race + 1, RUN.cup.tier); })) };
+    } else {
+      const ci = (S.level - 1) % CIRCUITS.length, ni = (ci + 1) % CIRCUITS.length, nx = CIRCUITS[ni], tier = S.tier;
+      flow = { html: `<button id="go">${T('REJOUER', 'RACE AGAIN')}</button> <button id="nextC" class="secondary">${nx.icon} ${nx.name} ▸</button> <button id="menuBtn" class="secondary">Menu</button>`,
+        action: () => afterBreak(() => startLevel('market', ci + 1, tier)),
+        bind: () => { $('nextC').onclick = () => afterBreak(() => { RUN = { kind: 'free', ci: ni }; startLevel('market', ni + 1, tier); }); } };
+    }
+    body = `<div class="podium">${medal} ${ordinalHtml(S.place)} ${T('place', 'place')}</div><div class="res2">${left}<div>${right}</div></div>`;
+  } else {
+    statMax('descentLvl', S.level);
+    const next = levelConfig(MODE, S.level + 1);
+    body = statsHtml;
+    flow = { html: `<p>${T('Prochain', 'Next')} : <b>${T('Niveau', 'Level')} ${next.n} · ${next.name}</b><br><span class="muted">${T("plus rapide, plus d'obstacles", 'faster, more obstacles')}</span></p>
+      <button id="go">${T('NIVEAU SUIVANT', 'NEXT LEVEL')}</button> <button id="menuBtn" class="secondary">Menu</button>`,
+      action: () => afterBreak(() => startLevel(MODE, S.level + 1)) };
+  }
+  showCard(`
+    <h2>🏁 ${MODE === 'market' ? T('Course terminée !', 'Race complete!') : T(`Niveau ${S.level} terminé !`, `Level ${S.level} complete!`)}</h2>
+    <p class="muted">${CFG.name}</p>
+    ${body}
     ${walletLine()}
     ${S.bagValue > 0 && !S.doubled ? rewardButton('adDouble', T('Doubler mes courses', 'Double my groceries')) : ''}
-    <p>${isRecord ? T('🏆 <b>Nouveau record !</b>', '🏆 <b>New record!</b>') : `${T('Record', 'Best')} : <b>${SAVE.best[MODE]}</b>`}</p>
-    <p>${T('Prochain', 'Next')} : <b>${T('Niveau', 'Level')} ${next.n} · ${next.name}</b><br><span class="muted">${T("plus rapide, plus d'obstacles", 'faster, more obstacles')}</span></p>
-    <button id="go">${T('NIVEAU SUIVANT', 'NEXT LEVEL')}</button>
-    <button id="menuBtn" class="secondary">Menu</button>`, () => afterBreak(() => startLevel(MODE, S.level + 1)), '', race ? 'card wide' : 'card');
+    ${isRecord ? `<p>${T('🏆 <b>Nouveau record !</b>', '🏆 <b>New record!</b>')}</p>` : ''}
+    ${flow.html}`, flow.action, '', race ? 'card wide' : 'card');
   $('menuBtn').onclick = () => afterBreak(showMenu);
+  if (flow.bind) flow.bind();
   bindReward('adDouble', () => {
     S.doubled = true; SAVE.wallet += S.bagValue; persist();
     sfx('buy'); toast(T(`+${S.bagValue} 🛍️ bonus !`, `+${S.bagValue} 🛍️ bonus!`));
     $('walletP').outerHTML = walletLine(); $('adDouble').remove();
   });
+}
+// Fin de coupe : podium et trophée
+function showCupEnd() {
+  const tbl = cupTable(), place = tbl.findIndex(r => r.me) + 1;
+  if (!RUN.result) {
+    const reward = place <= 3 ? RUN.cup.reward[place - 1] : 10;
+    RUN.result = { place, reward };
+    SAVE.wallet += reward;
+    if (place <= 3) SAVE.cups[RUN.cup.id] = Math.min(SAVE.cups[RUN.cup.id] || 9, place);
+    persist();
+    if (place === 1) statMax('cup_' + RUN.cup.id, 1);
+    if (place <= 3) { spawnConfetti(); sfx('finish'); sfx('cluck'); Portal.happy(); }
+  }
+  const { reward } = RUN.result;
+  const top = [tbl[1], tbl[0], tbl[2]];
+  const pod = top.map((r, k) => { const p = [2, 1, 3][k]; return `<div class="pod p${p}${r.me ? ' me' : ''}"><div class="pm">${MEDAL[p - 1]}</div><div class="pnm">${r.name}</div><div class="pst" style="border-color:${r.css}">${r.pts} pts</div></div>`; }).join('');
+  const cup = RUN.cup;
+  showCard(`
+    <h2>${cup.icon} ${cup.name}</h2>
+    <div class="podium">${place <= 3 ? `${MEDAL[place - 1]} ${T('Tu finis', 'You finish')} ${ordinalHtml(place)} !` : `${ordinalHtml(place)} ${T('place', 'place')}`}</div>
+    <div class="pods">${pod}</div>
+    <table class="rank">${tbl.map((r, i) => `<tr class="${r.me ? 'me' : ''}"><td>${ordinal(i + 1)}</td><td class="n"><i style="background:${r.css}"></i>${r.name}</td><td class="r"><b>${r.pts} pts</b></td></tr>`).join('')}</table>
+    <p><span class="gain">+${reward} 🛍️ ${T('de récompense', 'reward')}</span> <span class="muted">(total ${SAVE.wallet})</span></p>
+    <button id="go">Menu</button> <button id="again" class="secondary">${T('Rejouer la coupe', 'Play the cup again')}</button>`,
+    () => afterBreak(showMenu), '', 'card wide');
+  $('again').onclick = () => startCup(cup);
 }
 function showGameOver() {
   const score = S.bank + Math.floor(S.crashD) + bagPoints();
@@ -4651,6 +4920,7 @@ function updateCountdown(dt) {
     if (n > 0) { el.textContent = n; sfx('count'); if (n === 2) sfx('cluck'); }
     else {
       el.textContent = 'GO !'; sfx('go'); sfx('cluck'); CH.flapT = 0.8;
+      tutoStart();
       state = 'playing';
       Portal.gameplay(true);
       Music.play();
@@ -4672,6 +4942,7 @@ function collectCourse(o, i) {
   fxStar.burst(_v1, u.gold ? 26 : 12, u.gold ? 6 : 4, 0.7, u.gold ? 0.55 : 0.4, u.gold ? [0xffd23f, 0xffffff, 0xffa21f] : [0xffffff, 0xffe066, 0x7ee0ff], 1.5);
   popup(_v1.setY(_v1.y + 0.6), u.gold ? `+5 ${GROC_ICON[u.type]} ✨` : `+1 ${GROC_ICON[u.type]}`, u.gold ? 'gold' : '');
   updatePile();
+  if (S.bag.length >= 3) tutoDone('course');
   if (TRK.loop) { retire(o, 9); u.suck = undefined; o.scale.copy(u.scale0); } else removeEnt(i);
 }
 
@@ -4694,6 +4965,7 @@ function loseCourses(n) {
 // Choc "doux" du circuit : on tourne, on ralentit et on perd des courses
 function softHit(o) {
   if (S.invulnT > 0) return;
+  S.hitsTaken++;
   S.invulnT = 1.6;
   S.spinT = SPIN_DUR * 0.85; S.spinDir = Math.sign(S.x - o.userData.cx) || 1;
   S.vx += S.spinDir * 5;
@@ -4719,17 +4991,17 @@ function knockAway(o) {
   u.knockT = 0;
 }
 
-function tutoDone(k) { if (TUTO.active && !TUTO.done[k]) { TUTO.done[k] = true; } }
-const TUTO = { active: false, done: {} };
+const TUTO = { active: false, done: {}, step: 0, endT: 0 };
 const driftLevel = () => (S.driftCharge > 2.6 ? 3 : S.driftCharge > 1.5 ? 2 : S.driftCharge > 0.7 ? 1 : 0);
 function updatePlaying(dt) {
   S.elapsed += dt;
+  tutoTick(dt);
   for (const k of ['turboT', 'shieldT', 'wheelT', 'magnetT', 'spinT', 'invulnT']) S[k] = Math.max(0, S[k] - dt);
 
   if (S.rollT > 0) {
     S.rollT -= dt; S.rollTick -= dt;
     if (S.rollTick <= 0) { S.rollTick = 0.08; S.rollIcon = (S.rollIcon + 1) % ITEM_KEYS.length; sfx('tick'); }
-    if (S.rollT <= 0) { S.item = rollItem(); sfx('item'); }
+    if (S.rollT <= 0) { S.item = rollItem(); sfx('item'); tutoDone('box'); }
     updateItemUI();
   }
 
@@ -4768,6 +5040,7 @@ function updatePlaying(dt) {
       S.turboT = Math.max(S.turboT, [0, 0.7, 1.15, 1.7][lvl]); sfx('turbo');
       toast(['', T('MINI-TURBO !', 'MINI-TURBO!'), T('SUPER TURBO ! 🔥', 'SUPER TURBO! 🔥'), T('ULTRA TURBO ! 💜', 'ULTRA TURBO! 💜')][lvl], 700);
       tutoDone('drift');
+      if (lvl === 3) statAdd('ultra');
     }
     S.driftDir = 0; S.driftCharge = 0;
   }
@@ -4778,6 +5051,7 @@ function updatePlaying(dt) {
     if (S.air <= 0) S.driftCharge += dt * (1 + Math.max(0, into) * 0.6);
   } else steer = input * STEER * (S.air > 0 ? 0.6 : 1);
   S.braking = keys.drift && !input && !S.driftDir;
+  if (input) { S.steerT += dt; if (S.steerT > 1.2) tutoDone('steer'); }
   S.ax = steer + driftForce * (S.driftDir ? 0.25 : 1) + shimmy;
   if (TRK.loop && S.air <= 0) S.ax += trkCurv(S.d) * S.speed * S.speed * 0.16;   // force centrifuge
   S.vx += S.ax * dt;
@@ -4894,7 +5168,7 @@ function updatePlaying(dt) {
       if (airborne) continue;
       u.used = true;
       if (S.spinT <= 0) {
-        S.spinT = SPIN_DUR; S.spinDir = Math.random() < 0.5 ? -1 : 1;
+        S.spinT = SPIN_DUR; S.spinDir = Math.random() < 0.5 ? -1 : 1; S.hitsTaken++;
         S.vx += S.spinDir * 6; S.camShake = 0.2; CH.scream = 0.5;
         sfx('oil'); toast(T('Ça glisse ! 🌀', 'Slippery! 🌀'));
       }
@@ -4918,6 +5192,7 @@ function updatePlaying(dt) {
       u.cool = 1;
       S.vy = JUMP_VY; S.air = 0.01;
       sfx('jump'); sfx('cluck'); CH.flapT = 0.5;
+      statAdd('jumps');
       toast(T('SAUT ! 🐔', 'JUMP! 🐔'), 600);
     }
   }
@@ -5002,7 +5277,13 @@ function finishLevel() {
     S.place = 1 + RIV.filter(b => b.finished).length;
     S.levelBonus = Math.round([1500, 1100, 800, 600, 450, 300, 200, 100][S.place - 1] * (1 + (S.level - 1) * 0.5));
     S.standings = finalStandings();
+    if (S.place === 1) statAdd('wins');
+    if (S.place <= 3) statAdd('podiums');
+    SAVE.stats.circ = Object.assign({}, SAVE.stats.circ, { [CFG.circuit.key]: 1 });
   } else S.levelBonus = 300 * S.level;
+  if (S.hitsTaken === 0) statMax('clean', 1);
+  statMax('bagRace', S.bag.length); statMax('goldRace', S.bag.filter(b => b.gold).length);
+  if (TUTO.active) tutoFinish();
   S.levelPts = Math.round(CFG.length) + bagPoints();
   sfx('finish'); sfx('cluck');
   toast(T('ARRIVÉE ! 🏁', 'FINISH! 🏁'), 1800);
@@ -5149,7 +5430,7 @@ if (/[?&]debug=1/.test(location.search)) window.__music = { TRACKS, render: asyn
   const buf = await oc.startRendering();
   return Array.from(buf.getChannelData(0));
 } };
-if (/[?&]debug=1/.test(location.search)) window.__caddie = { sim: sec => { for (let i = 0; i < sec * 30; i++) tick(1 / 30); }, S, keys, RIV, throwEgg, cocorico, PROJ, start: (m, n) => startLevel(m, n), get state() { return state; } };
+if (/[?&]debug=1/.test(location.search)) window.__caddie = { sim: sec => { for (let i = 0; i < sec * 30; i++) tick(1 / 30); }, S, keys, RIV, throwEgg, cocorico, PROJ, chooseLine, startCup, CUPS, get RUN() { return RUN; }, start: (m, n) => startLevel(m, n), get state() { return state; } };
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -5166,6 +5447,7 @@ $('itemHint').textContent = IS_TOUCH ? T('Objet : touchez', 'Item: tap') : T('Ob
 $('itemSlot').title = T("Utiliser l'objet", 'Use item');
 
 // Démarrage : le magasin en fond, la poule prête au départ
+applyQuality();
 applyLook(SAVE.equip);
 prepareLevel('market', 1);
 showMenu();
