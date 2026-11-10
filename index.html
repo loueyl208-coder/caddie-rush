@@ -136,7 +136,16 @@
   .card .wr-foot button { margin: 0; }
   .wr-tip { font-size: 12px; color: #64748b; font-weight: 700; }
 
-  body.ui-off #hud, body.ui-off #itemBox, body.ui-off #minimap { display: none !important; }
+  body.ui-off #hud, body.ui-off #itemBox, body.ui-off #minimap, body.ui-off .tbtn { display: none !important; }
+  .tbtn { position: fixed; bottom: 112px; width: 74px; height: 74px; border-radius: 50%; display: none; align-items: center; justify-content: center;
+    font-size: 34px; color: #fff; background: rgba(27,31,59,.35); border: 3px solid rgba(255,255,255,.45); z-index: 4; pointer-events: none; }
+  .tbtn.on { background: rgba(255,210,63,.55); }
+  body.touch .tbtn { display: flex; }
+  #touchL { left: 14px; } #touchR { right: 14px; }
+  body.touch #minimap { bottom: auto; top: 128px; }
+  .menu-top { display: flex; justify-content: flex-end; margin: -6px -8px 6px 0; }
+  .card .lang { margin: 0; padding: 4px 12px; font-size: 13px; border-width: 2px; box-shadow: 0 3px 0 var(--ink); background: #e2e8f0; color: var(--ink); text-shadow: none; }
+  .card button.ad { background: linear-gradient(180deg, #7be495, #22a356); }
   #error { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: #1e293b; color: #fff; z-index: 20; text-align: center; padding: 20px; }
   @media (max-width: 760px) {
@@ -192,26 +201,28 @@
 <div id="toast"></div>
 <div id="count"></div>
 
-<div id="overlay"><div class="card" id="card"></div></div>
+<div id="overlay"><div class="card" id="card"><h2>🐔 Caddie Rush</h2><p class="muted">Chargement… / Loading…</p></div></div>
+<div id="touchL" class="tbtn">◀</div><div id="touchR" class="tbtn">▶</div>
 
 <div id="error">
   <div>
-    <h2>Impossible de charger Three.js</h2>
-    <p>Ce jeu télécharge Three.js depuis Internet (cdn.jsdelivr.net).<br>
-       Vérifiez votre connexion, puis rechargez la page.</p>
+    <h2>😕 Le jeu n'a pas pu démarrer / The game could not start</h2>
+    <p>Rechargez la page. Si le problème continue, essayez un autre navigateur.<br>
+       Please reload the page. If it keeps happening, try another browser.</p>
   </div>
 </div>
 
 <script>
   setTimeout(function () {
     if (!window.__gameLoaded) document.getElementById('error').style.display = 'flex';
-  }, 8000);
+  }, 15000);
 </script>
 
+<script src="config.js"></script>
 <script type="importmap">
 { "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    "three": "./vendor/three.module.min.js",
+    "three/addons/": "./vendor/addons/"
 } }
 </script>
 
@@ -231,6 +242,108 @@ const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k
 const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
 const $ = id => document.getElementById(id);
 const IS_TOUCH = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+/* ============================================================
+   PORTAILS DE JEUX (Poki, CrazyGames, GameDistribution…)
+   Tout passe par cet objet : si aucun portail n'est détecté, ou si
+   le kit du portail ne se charge pas (bloqueur de pub…), le jeu
+   fonctionne normalement, simplement sans publicité.
+   ============================================================ */
+const Portal = (() => {
+  const P = { name: 'none', ready: false, inAd: false, playing: false, hasRewarded: false, races: 0, hooks: { adStart() {}, adEnd() {} } };
+  const loadScript = src => new Promise((res, rej) => {
+    const el = document.createElement('script'); el.src = src; el.async = true; el.onload = res; el.onerror = rej; document.head.appendChild(el);
+  });
+  const timeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  function detect() {
+    let q = null;
+    try { q = new URLSearchParams(location.search).get('portal'); } catch (e) {}
+    if (q) return q;
+    if (window.CR_PORTAL && window.CR_PORTAL !== 'auto') return window.CR_PORTAL;
+    const h = (location.hostname + ' ' + document.referrer).toLowerCase();
+    if (h.includes('poki')) return 'poki';
+    if (h.includes('crazygames')) return 'crazygames';
+    if (h.includes('gamedistribution')) return 'gamedistribution';
+    return 'none';
+  }
+  const adStart = () => { P.inAd = true; P.hooks.adStart(); };
+  const adEnd = () => { P.inAd = false; P.hooks.adEnd(); };
+  let gdReward = false;
+  P.init = async () => {
+    P.name = detect();
+    try {
+      if (P.name === 'poki') {
+        await timeout(loadScript('https://game-cdn.poki.com/scripts/v2/poki-sdk.js'), 6000);
+        await timeout(window.PokiSDK.init(), 6000);
+        P.sdk = window.PokiSDK; P.hasRewarded = true;
+      } else if (P.name === 'crazygames') {
+        await timeout(loadScript('https://sdk.crazygames.com/crazygames-sdk-v3.js'), 6000);
+        await timeout(window.CrazyGames.SDK.init(), 6000);
+        P.sdk = window.CrazyGames.SDK; P.hasRewarded = true;
+        try { P.sdk.game.loadingStart(); } catch (e) {}
+      } else if (P.name === 'gamedistribution') {
+        window.GD_OPTIONS = { gameId: window.CR_GD_ID || '', onEvent: ev => {
+          if (ev.name === 'SDK_GAME_PAUSE') adStart();
+          else if (ev.name === 'SDK_GAME_START') { if (P.inAd) adEnd(); }
+          else if (ev.name === 'SDK_REWARDED_WATCH_COMPLETE') gdReward = true;
+        } };
+        await timeout(loadScript('https://html5.api.gamedistribution.com/main.min.js'), 6000);
+        P.sdk = window.gdsdk; P.hasRewarded = !!window.CR_GD_REWARDED;
+      }
+      P.ready = !!P.sdk;
+    } catch (e) { P.ready = false; P.hasRewarded = false; console.warn('Portal SDK indisponible :', P.name, e); }
+  };
+  P.loadingDone = () => {
+    if (!P.ready) return;
+    try { if (P.name === 'poki') P.sdk.gameLoadingFinished(); if (P.name === 'crazygames') P.sdk.game.loadingStop(); } catch (e) {}
+  };
+  P.gameplay = on => {
+    if (on === P.playing) return;
+    P.playing = on;
+    if (!P.ready) return;
+    try {
+      if (P.name === 'poki') on ? P.sdk.gameplayStart() : P.sdk.gameplayStop();
+      if (P.name === 'crazygames') on ? P.sdk.game.gameplayStart() : P.sdk.game.gameplayStop();
+    } catch (e) {}
+  };
+  P.happy = () => { if (P.ready && P.name === 'crazygames') try { P.sdk.game.happytime(); } catch (e) {} };
+  // Pub entre deux parties (le portail décide s'il en montre une)
+  P.midgame = () => new Promise(resolve => {
+    if (!P.ready) return resolve();
+    const done = () => { if (P.inAd) adEnd(); resolve(); };
+    try {
+      if (P.name === 'poki') P.sdk.commercialBreak(adStart).then(done, done);
+      else if (P.name === 'crazygames') P.sdk.ad.requestAd('midgame', { adStarted: adStart, adFinished: done, adError: done });
+      else if (P.name === 'gamedistribution' && P.sdk && P.sdk.showAd) P.sdk.showAd().then(done, done);
+      else resolve();
+    } catch (e) { done(); }
+  });
+  // Pub récompensée : renvoie true si le joueur a regardé jusqu'au bout
+  P.rewarded = () => new Promise(resolve => {
+    if (!P.ready || !P.hasRewarded) return resolve(false);
+    const fin = ok => { if (P.inAd) adEnd(); resolve(ok); };
+    try {
+      if (P.name === 'poki') P.sdk.rewardedBreak(adStart).then(ok => fin(!!ok), () => fin(false));
+      else if (P.name === 'crazygames') P.sdk.ad.requestAd('rewarded', { adStarted: adStart, adFinished: () => fin(true), adError: () => fin(false) });
+      else if (P.name === 'gamedistribution') { gdReward = false; P.sdk.showAd('rewarded').then(() => fin(gdReward), () => fin(false)); }
+      else resolve(false);
+    } catch (e) { fin(false); }
+  });
+  // Sauvegarde : module "data" de CrazyGames si présent, sinon localStorage
+  P.get = k => { try { if (P.ready && P.name === 'crazygames' && P.sdk.data) return P.sdk.data.getItem(k); return localStorage.getItem(k); } catch (e) { return null; } };
+  P.set = (k, v) => { try { if (P.ready && P.name === 'crazygames' && P.sdk.data) P.sdk.data.setItem(k, v); else localStorage.setItem(k, v); } catch (e) {} };
+  return P;
+})();
+await Portal.init();
+
+/* Langue : français ou anglais (détectée automatiquement, modifiable dans le menu) */
+const LANG = (() => {
+  try { const v = JSON.parse(Portal.get('caddieRush3') || '{}').lang; if (v === 'fr' || v === 'en') return v; } catch (e) {}
+  return /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
+})();
+if (IS_TOUCH) document.body.classList.add('touch');
+document.documentElement.lang = LANG;
+const T = (fr, en) => (LANG === 'fr' ? fr : en);
 
 /* ============================================================
    RÉGLAGES DU JEU
@@ -253,24 +366,24 @@ const LAPS = 3;
 
 /* --- La Descente : 3 cartes de montagne --- */
 const THEMES = [
-  { key: 'parking', name: 'Parking du Sommet',
+  { key: 'parking', name: T('Parking du Sommet', 'Summit Car Park'),
     sky: 0xcfe6fb, fogNear: 45, fogFar: 175, hemiSky: 0xffffff, hemiGround: 0x8a96a6, hemiI: 1.6,
     sunColor: 0xffffff, sunI: 2.3, near: 0x7c838d, ground: 0xf4f7fb, ground2: 0xa7b0bc,
     road: 0xffffff, curb: 0xeeeeee, flatW: 10, left: 0.32, right: -0.18, bump: 1.0,
     peak: 0xa9bdd2, snowPeaks: true, treeSnow: true, windows: 0, bulb: 0.5, valley: 0xdfe6ee },
-  { key: 'campagne', name: 'Route de campagne',
+  { key: 'campagne', name: T('Route de campagne', 'Country Road'),
     sky: 0x9fd4ff, fogNear: 45, fogFar: 175, hemiSky: 0xe6f4ff, hemiGround: 0x4d6b33, hemiI: 1.6,
     sunColor: 0xfff3dd, sunI: 2.4, near: 0xa39276, ground: 0x6aa84f, ground2: 0x94c25e,
     road: 0xf0ebe0, curb: 0xd9d9d9, flatW: 1, left: 0.45, right: -0.26, bump: 1.2,
     peak: 0x8fabc4, snowPeaks: true, treeSnow: false, windows: 0, bulb: 0.5, valley: 0x5f9447 },
-  { key: 'ville', name: 'Ville en contrebas',
+  { key: 'ville', name: T('Ville en contrebas', 'Downtown'),
     sky: 0xf4b38f, fogNear: 40, fogFar: 170, hemiSky: 0xffd8bf, hemiGround: 0x4a3d5c, hemiI: 1.25,
     sunColor: 0xffa66b, sunI: 1.9, near: 0xbdbdbd, ground: 0x8c8f97, ground2: 0x777a82,
     road: 0xbfc3cf, curb: 0xd0d0d0, flatW: 10, left: 0.06, right: 0.03, bump: 0.15,
     peak: 0xc29a9f, snowPeaks: false, treeSnow: false, windows: 1.1, bulb: 2.5, valley: 0x777a82 },
 ];
 /* --- Le circuit du supermarché --- */
-const MARKET = { key: 'market', name: 'Hyper Caddie Market',
+const MARKET = { key: 'market', name: 'Caddie Hypermarket',
   sky: 0xe9e3d6, fogNear: 38, fogFar: 165, hemiSky: 0xfff8ec, hemiGround: 0x9a8f80, hemiI: 1.45,
   sunColor: 0xfff4e0, sunI: 1.55 };
 
@@ -541,7 +654,7 @@ const saleTex = canvasTex(128, 360, (g, w, h) => {
   g.strokeStyle = '#ffd23f'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12);
   g.font = 'bold 66px "Arial Black", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillStyle = '#ffd23f';
-  'SOLDE'.split('').forEach((ch, i) => g.fillText(ch, w / 2, 48 + i * 66));
+  T('SOLDE', ' SALE').split('').forEach((ch, i) => g.fillText(ch, w / 2, 48 + i * 66));
 });
 const wetTex = canvasTex(128, 192, (g, w, h) => {
   g.fillStyle = '#ffd400'; g.fillRect(0, 0, w, h);
@@ -549,7 +662,7 @@ const wetTex = canvasTex(128, 192, (g, w, h) => {
   g.beginPath(); g.moveTo(w / 2, 22); g.lineTo(w - 18, 100); g.lineTo(18, 100); g.closePath(); g.fill();
   g.fillStyle = '#ffd400'; g.font = 'bold 60px sans-serif'; g.textAlign = 'center'; g.fillText('!', w / 2, 92);
   g.fillStyle = '#1b1f3b'; g.font = 'bold 20px "Arial Black", sans-serif';
-  g.fillText('SOL', w / 2, 138); g.fillText('GLISSANT', w / 2, 164);
+  g.fillText(T('SOL', 'WET'), w / 2, 138); g.fillText(T('GLISSANT', 'FLOOR'), w / 2, 164);
 });
 const wallTex = canvasTex(1024, 256, (g, w, h) => {
   g.fillStyle = '#f4efe6'; g.fillRect(0, 0, w, h);
@@ -1131,8 +1244,8 @@ function makeArch(text, color, parent) {
   parent.add(g);
   return g;
 }
-const startArch = makeArch('🏔  DÉPART', '#16a34a', descentWorld);
-const finishArch = makeArch('🏁  ARRIVÉE  🏁', '#e23b3b', descentWorld);
+const startArch = makeArch(T('🏔  DÉPART', '🏔  START'), '#16a34a', descentWorld);
+const finishArch = makeArch(T('🏁  ARRIVÉE  🏁', '🏁  FINISH  🏁'), '#e23b3b', descentWorld);
 const startLine = new THREE.Mesh(G.startLine, M.white); startLine.receiveShadow = true;
 const finishLine = new THREE.Mesh(G.finishLine, M.checker); finishLine.receiveShadow = true;
 descentWorld.add(startLine, finishLine);
@@ -1933,8 +2046,9 @@ const BUILD = {
 
 const SLOTS = ['tete', 'yeux', 'corps', 'cou', 'dos', 'pattes', 'plumage', 'caddie'];
 const SLOT_INFO = {
-  tete: { name: 'Casques', icon: '⛑️' }, yeux: { name: 'Lunettes', icon: '🕶️' }, corps: { name: 'Armures', icon: '🛡️' },
-  cou: { name: 'Cou', icon: '🎀' }, dos: { name: 'Dos', icon: '🎒' }, pattes: { name: 'Pattes', icon: '🦿' }, plumage: { name: 'Plumage', icon: '🐔' }, caddie: { name: 'Caddie', icon: '🛒' },
+  tete: { name: T('Casques', 'Hats'), icon: '⛑️' }, yeux: { name: T('Lunettes', 'Glasses'), icon: '🕶️' }, corps: { name: T('Armures', 'Armor'), icon: '🛡️' },
+  cou: { name: T('Cou', 'Neck'), icon: '🎀' }, dos: { name: T('Dos', 'Back'), icon: '🎒' }, pattes: { name: T('Pattes', 'Legs'), icon: '🦿' },
+  plumage: { name: T('Plumage', 'Feathers'), icon: '🐔' }, caddie: { name: T('Caddie', 'Cart'), icon: '🛒' },
 };
 const NONE = { id: 'none', name: 'Rien', icon: '🚫', price: 0 };
 const ACC = {
@@ -2010,6 +2124,18 @@ const ACC = {
     { id: 'neon', name: 'Néon fluo', icon: '💖', price: 50, grid: 0xff3fd2, frame: 0x22e5ff, grip: 0x22e5ff, neon: true },
     { id: 'or', name: 'Caddie en or', icon: '🥇', price: 150, grid: 0xffc83a, frame: 0xffc83a, grip: 0xe23b3b }],
 };
+const EN_NAMES = { none: 'Nothing', speedy: 'Speedy Helmet', moto: 'Racing Helmet', chantier: 'Hard Hat', casquette: 'Backwards Cap', fete: 'Party Hat',
+  bonnet: 'Bobble Hat', toque: 'Chef Hat', cowboy: 'Cowboy Hat', helice: 'Propeller Cap', passoire: 'Colander', viking: 'Viking Helmet',
+  antennes: 'Alien Antennae', couronne: 'Royal Crown', soleil: 'Sunglasses', aviateur: 'Aviator Goggles', nerd: 'Nerd Glasses', lunettes3d: '3D Glasses',
+  coeur: 'Heart Glasses', ski: 'Ski Goggles', monocle: 'Fancy Monocle', etoiles: 'Star Glasses', laser: 'Laser Visor', speedyArmure: 'Jet Armor',
+  chevalier: 'Knight Armor', cape: 'Superhero Cape', fluo: 'Hi-Vis Vest', gilet: 'Life Jacket', maillot: 'Racing Jersey', tutu: 'Pink Tutu',
+  canard: 'Duck Float', dore: 'Golden Armor', noeud: 'Bow Tie', cravate: 'Necktie', echarpe: 'Scarf', fleurs: 'Flower Necklace', clochette: 'Cowbell',
+  medaille: 'Medal', chaine: 'Gold Chain', sac: 'Backpack', baguetteDos: 'Baguette Sword', parapluie: 'Umbrella', jetpack: 'Jetpack',
+  papillon: 'Butterfly Wings', ange: 'Angel Wings', fusee: 'Back Rocket', naturelles: 'Chicken Legs', robot: 'Robot Legs', baskets: 'Red Sneakers',
+  rollers: 'Roller Skates', palmes: 'Flippers', blanche: 'White Hen', rousse: 'Red Hen', noire: 'Black Hen', bleue: 'Blue Hen', rose: 'Pink Hen',
+  verte: 'Martian Hen', doree: 'Golden Egg Hen', classique: 'Classic Chrome', rouge: 'Racing Red', bleu: 'Racing Blue', noir: 'Matte Black',
+  neon: 'Neon Glow', or: 'Golden Cart' };
+const accName = it => (LANG === 'en' && EN_NAMES[it.id]) || it.name;
 const findAcc = (slot, id) => ACC[slot].find(a => a.id === id) || ACC[slot][0];
 
 function applyLook(look) {
@@ -2181,14 +2307,14 @@ function clearFlyers() { while (flyers.length) scene.remove(flyers.pop().obj); }
    LE SUPERMARCHÉ : construction du circuit et du décor
    ============================================================ */
 const CATS = [
-  { name: 'BOISSONS', color: '#1e63d6', c: 0x1e63d6, shape: 'bottle', pal: [0xe53935, 0x43a047, 0x8e24aa, 0xfb8c00, 0x1e88e5, 0xfdd835, 0x00acc1] },
-  { name: 'FRUITS & LÉGUMES', color: '#2e9d3a', c: 0x2e9d3a, shape: 'fruit', pal: [0xe53935, 0x7cb342, 0xfdd835, 0xfb8c00, 0x8e24aa, 0xc0ca33] },
-  { name: 'CÉRÉALES', color: '#f08c00', c: 0xf08c00, shape: 'box', pal: [0xf6b93b, 0xe53935, 0x1e88e5, 0x43a047, 0xfb8c00, 0x8e24aa] },
-  { name: 'CONSERVES', color: '#6c3fc4', c: 0x6c3fc4, shape: 'can', pal: [0xe53935, 0x43a047, 0xfdd835, 0x1e88e5, 0xfb8c00] },
-  { name: 'SNACKS', color: '#d62828', c: 0xd62828, shape: 'box', pal: [0xe53935, 0xfdd835, 0x1e88e5, 0xfb8c00, 0xf06292] },
-  { name: 'PRODUITS LAITIERS', color: '#0fa3b1', c: 0x0fa3b1, shape: 'can', pal: [0xffffff, 0xbbdefb, 0xfff59d, 0xf8bbd0, 0xc8e6c9] },
-  { name: 'HYGIÈNE', color: '#e0457b', c: 0xe0457b, shape: 'bottle', pal: [0xf8bbd0, 0xb3e5fc, 0xffffff, 0xc5e1a5, 0xce93d8] },
-  { name: 'PÂTES & RIZ', color: '#b5651d', c: 0xb5651d, shape: 'box', pal: [0x1e88e5, 0xfdd835, 0xe53935, 0xffffff, 0x43a047] },
+  { name: T('BOISSONS', 'DRINKS'), color: '#1e63d6', c: 0x1e63d6, shape: 'bottle', pal: [0xe53935, 0x43a047, 0x8e24aa, 0xfb8c00, 0x1e88e5, 0xfdd835, 0x00acc1] },
+  { name: T('FRUITS & LÉGUMES', 'PRODUCE'), color: '#2e9d3a', c: 0x2e9d3a, shape: 'fruit', pal: [0xe53935, 0x7cb342, 0xfdd835, 0xfb8c00, 0x8e24aa, 0xc0ca33] },
+  { name: T('CÉRÉALES', 'CEREAL'), color: '#f08c00', c: 0xf08c00, shape: 'box', pal: [0xf6b93b, 0xe53935, 0x1e88e5, 0x43a047, 0xfb8c00, 0x8e24aa] },
+  { name: T('CONSERVES', 'CANNED FOOD'), color: '#6c3fc4', c: 0x6c3fc4, shape: 'can', pal: [0xe53935, 0x43a047, 0xfdd835, 0x1e88e5, 0xfb8c00] },
+  { name: T('SNACKS', 'SNACKS'), color: '#d62828', c: 0xd62828, shape: 'box', pal: [0xe53935, 0xfdd835, 0x1e88e5, 0xfb8c00, 0xf06292] },
+  { name: T('PRODUITS LAITIERS', 'DAIRY'), color: '#0fa3b1', c: 0x0fa3b1, shape: 'can', pal: [0xffffff, 0xbbdefb, 0xfff59d, 0xf8bbd0, 0xc8e6c9] },
+  { name: T('HYGIÈNE', 'HEALTH & BEAUTY'), color: '#e0457b', c: 0xe0457b, shape: 'bottle', pal: [0xf8bbd0, 0xb3e5fc, 0xffffff, 0xc5e1a5, 0xce93d8] },
+  { name: T('PÂTES & RIZ', 'PASTA & RICE'), color: '#b5651d', c: 0xb5651d, shape: 'box', pal: [0x1e88e5, 0xfdd835, 0xe53935, 0xffffff, 0x43a047] },
 ];
 const GON = { len: 2.4, dep: 1.1, hgt: 2.3, lat: 7.2, levels: [0.12, 0.82, 1.52] };
 
@@ -2273,7 +2399,7 @@ function buildMarket() {
   ribbon([[HALF_ROAD, 0.016, 0], [HALF_ROAD, 0.26, 0.3], [HALF_ROAD + 0.55, 0.26, 0.7], [HALF_ROAD + 0.55, 0.0, 1]], 0, L, 0.5, 2, curbMat);
   ribbon([[-HALF_ROAD - 0.55, 0.0, 0], [-HALF_ROAD - 0.55, 0.26, 0.3], [-HALF_ROAD, 0.26, 0.7], [-HALF_ROAD, 0.016, 1]], 0, L, 0.5, 2, curbMat);
   ribbon([[-HALF_ROAD, 0.03, 0], [HALF_ROAD, 0.03, 1]], -0.9, 0.9, 0.9, 1.8, M.checker);
-  const arch = makeArch('🏁  DÉPART · ARRIVÉE  🏁', '#e23b3b', grp);
+  const arch = makeArch(T('🏁  DÉPART · ARRIVÉE  🏁', '🏁  START · FINISH  🏁'), '#e23b3b', grp);
   mkPoint(0, 0, arch.position); arch.rotation.y = mkYaw(0);
 
   // --- Gondoles (rayons) : regroupées par zones pour que la caméra
@@ -2378,7 +2504,7 @@ function buildMarket() {
   const twoSided = (geo, mat) => { const g = new THREE.Group(); g.add(new THREE.Mesh(geo, mat)); const b = new THREE.Mesh(geo, mat); b.rotation.y = Math.PI; g.add(b); return g; };
   const signGeo = new THREE.PlaneGeometry(3.2, 0.875);
   for (const s of signsAt) {
-    const m = new THREE.MeshStandardMaterial({ map: signTex(s.cat.name, 'RAYON ' + s.n, s.cat.color), roughness: 0.5, emissive: 0xffffff, emissiveIntensity: 0.12 });
+    const m = new THREE.MeshStandardMaterial({ map: signTex(s.cat.name, T('RAYON ', 'AISLE ') + s.n, s.cat.color), roughness: 0.5, emissive: 0xffffff, emissiveIntensity: 0.12 });
     m.emissiveMap = m.map;
     const g = twoSided(signGeo, m);
     mkPoint(s.d, s.side * GON.lat, g.position); g.position.y = 3.5; g.rotation.y = mkYaw(s.d);
@@ -2386,8 +2512,8 @@ function buildMarket() {
     for (const k of [-1.2, 1.2]) { v.set(k, 0.44, 0).applyAxisAngle(Y, g.rotation.y).add(g.position); wire(v.clone(), v2.copy(v).setY(CEIL)); }
   }
   // Grandes banderoles au-dessus de la piste
-  const promos = [['SUPER PROMO -50%', '#e23b3b', '#ffd23f'], ['SOLDES MONSTRES !', '#ffd23f', '#e23b3b'], ['FRAIS DU JOUR', '#2e9d3a', '#ffffff'],
-    ['CADDIE MARKET', '#2f7cf6', '#ffffff'], ['ATTENTION AU CADDIE !', '#ff8a1f', '#ffffff'], ['2 ACHETÉS = 1 OFFERT', '#c026d3', '#ffffff']];
+  const promos = [[T('SUPER PROMO -50%', 'MEGA SALE -50%'), '#e23b3b', '#ffd23f'], [T('SOLDES MONSTRES !', 'MONSTER DEALS!'), '#ffd23f', '#e23b3b'], [T('FRAIS DU JOUR', 'FRESH TODAY'), '#2e9d3a', '#ffffff'],
+    ['CADDIE MARKET', '#2f7cf6', '#ffffff'], [T('ATTENTION AU CADDIE !', 'WATCH OUT FOR CARTS!'), '#ff8a1f', '#ffffff'], [T('2 ACHETÉS = 1 OFFERT', 'BUY 2 GET 1 FREE'), '#c026d3', '#ffffff']];
   const promoGeo = new THREE.PlaneGeometry(9.5, 1.4);
   let pk = 0;
   for (let d = 70; d < L - 40; d += 92) {
@@ -2780,12 +2906,12 @@ function sfx(name) {
 const SAVE_KEY = 'caddieRush3';
 const SAVE = { wallet: 0, owned: [], v: 2, equip: { tete: 'speedy', yeux: 'none', corps: 'speedyArmure', cou: 'none', dos: 'none', pattes: 'robot', plumage: 'blanche', caddie: 'classique' }, best: { market: 0, descent: 0 }, bestLap: 0 };
 try {
-  const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+  const raw = JSON.parse(Portal.get(SAVE_KEY) || 'null');
   if (raw) { const def = Object.assign({}, SAVE.equip); Object.assign(SAVE, raw); SAVE.equip = Object.assign({}, def, raw.equip || {});
     if (raw.v !== 2) { SAVE.v = 2; for (const k of ['tete', 'corps']) if (SAVE.equip[k] === 'none') SAVE.equip[k] = def[k]; SAVE.equip.pattes = 'robot'; } SAVE.best = Object.assign({ market: 0, descent: 0 }, raw.best || {}); }
   else SAVE.best.descent = parseInt(localStorage.getItem('caddieRushBest2') || '0', 10) || 0;
 } catch (e) {}
-function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {} }
+function persist() { Portal.set(SAVE_KEY, JSON.stringify(SAVE)); }
 const owns = (slot, id) => findAcc(slot, id).price === 0 || SAVE.owned.includes(slot + ':' + id);
 function saveBest(score) {
   if (score > (SAVE.best[MODE] || 0)) { SAVE.best[MODE] = score; persist(); return true; }
@@ -2837,7 +2963,7 @@ function prepareLevel(mode, n) {
     bag: [], bagValue: 0, item: null, rollT: 0, rollTick: 0, rollIcon: 0,
     turboT: 0, shieldT: 0, wheelT: 0, magnetT: 0, spinT: 0, invulnT: 0, finishT: 0,
     air: 0, vy: 0, lap: 1, lapStart: 0, lapTimes: [], dustT: 0,
-    countdown: 3, lastCount: 4, paused: false, camX: 0,
+    countdown: 3, lastCount: 4, paused: false, camX: 0, credited: 0, revived: false, doubled: false,
   });
   S.z = -S.d;
   clearEnts(); clearFlyers(); clearConfetti();
@@ -2861,7 +2987,7 @@ function prepareLevel(mode, n) {
   setCartPose(0);
   buildProfile();
   $('minimap').style.display = mode === 'market' ? 'block' : 'none';
-  $('lvlName').textContent = `Niveau ${n} · ${CFG.name}`;
+  $('lvlName').textContent = `${T('Niveau', 'Level')} ${n} · ${CFG.name}`;
   updateItemUI();
   updateHUD();
 }
@@ -2877,6 +3003,7 @@ function startLevel(mode, n) {
   $('count').textContent = '';
 }
 function newGame(mode) { S.bank = 0; startLevel(mode, 1); }
+const playNew = mode => afterBreak(() => newGame(mode));
 
 /* ============================================================
    ENTRÉES
@@ -2897,12 +3024,12 @@ window.addEventListener('keydown', e => {
   if (k === ' ' || k === 'enter') {
     e.preventDefault();
     if (state === 'playing') useItem();
-    else if (overlayAction && !overlay.classList.contains('hidden')) overlayAction();
+    else if (overlayAction && !overlay.classList.contains('hidden') && !Portal.inAd) overlayAction();
   }
   if (k === 'arrowup' || k === 'z' || k === 'w' || k === 'shift') { e.preventDefault(); useItem(); }
   if ((k === 'p' || k === 'escape') && state === 'playing') togglePause();
   if (k === 'escape' && state === 'wardrobe') closeWardrobe();
-  if (k === 'm') { muted = !muted; toast(muted ? '🔇 Son coupé' : '🔊 Son activé'); }
+  if (k === 'm') { muted = !muted; toast(muted ? T('🔇 Son coupé', '🔇 Sound off') : T('🔊 Son activé', '🔊 Sound on')); }
 });
 window.addEventListener('keyup', e => setKey(e, false));
 window.addEventListener('blur', () => {
@@ -2916,18 +3043,49 @@ function handleTouch(e) {
   if (!e.touches.length) { touchDir = 0; return; }
   touchDir = e.touches[0].clientX < window.innerWidth / 2 ? -1 : 1;
 }
+function touchVisual() {
+  $('touchL').classList.toggle('on', touchDir < 0);
+  $('touchR').classList.toggle('on', touchDir > 0);
+}
+['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(ev => window.addEventListener(ev, () => setTimeout(touchVisual, 0), { passive: true }));
 const cv = renderer.domElement;
 cv.addEventListener('touchstart', handleTouch, { passive: true });
 cv.addEventListener('touchmove', handleTouch, { passive: true });
 cv.addEventListener('touchend', handleTouch, { passive: true });
+cv.addEventListener('touchcancel', handleTouch, { passive: true });
 cv.addEventListener('pointerdown', e => { if (state === 'wardrobe') drag = { x: e.clientX, a: S.orbitA }; });
 window.addEventListener('pointermove', e => { if (drag && state === 'wardrobe') { S.orbitA = drag.a - (e.clientX - drag.x) * 0.01; S.orbitIdle = 0; } });
 window.addEventListener('pointerup', () => (drag = null));
 $('itemSlot').addEventListener('pointerdown', e => { e.preventDefault(); useItem(); });
 
+// Pendant une pub : jeu en pause et son coupé
+let adMuted = false;
+Portal.hooks.adStart = () => {
+  adMuted = true;
+  if (actx) actx.suspend().catch(() => {});
+  if (state === 'playing' && !S.paused) togglePause();
+};
+Portal.hooks.adEnd = () => {
+  adMuted = false;
+  if (actx && !document.hidden) actx.resume().catch(() => {});
+  clock.getDelta();
+};
+document.addEventListener('visibilitychange', () => {
+  if (!actx) return;
+  if (document.hidden) actx.suspend().catch(() => {});
+  else if (!adMuted) actx.resume().catch(() => {});
+  if (document.hidden && state === 'playing' && !S.paused) togglePause();
+});
+async function afterBreak(fn) {
+  // pas de pub avant la toute première course
+  if (Portal.races > 0) { overlay.className = 'hidden'; await Portal.midgame(); }
+  fn();
+}
+
 function togglePause() {
   S.paused = !S.paused;
-  $('count').textContent = S.paused ? 'PAUSE' : '';
+  Portal.gameplay(!S.paused && state === 'playing');
+  $('count').textContent = S.paused ? T('PAUSE', 'PAUSED') : '';
   $('count').style.fontSize = S.paused ? '80px' : '';
   clock.getDelta();
 }
@@ -2937,9 +3095,9 @@ function togglePause() {
    ============================================================ */
 const ITEMS = {
   turbo:  { icon: '🚀', name: 'Turbo' },
-  shield: { icon: '🛡️', name: 'Bouclier' },
-  wheel:  { icon: '🔧', name: 'Roue neuve' },
-  magnet: { icon: '🧲', name: 'Aimant à courses' },
+  shield: { icon: '🛡️', name: T('Bouclier', 'Shield') },
+  wheel:  { icon: '🔧', name: T('Roue neuve', 'New Wheel') },
+  magnet: { icon: '🧲', name: T('Aimant à courses', 'Grocery Magnet') },
 };
 const ITEM_KEYS = Object.keys(ITEMS);
 function rollItem() { const r = Math.random(); return r < 0.34 ? 'turbo' : r < 0.58 ? 'shield' : r < 0.74 ? 'wheel' : 'magnet'; }
@@ -2948,10 +3106,10 @@ function useItem() {
   if (state !== 'playing' || S.paused || !S.item || S.rollT > 0) return;
   const it = S.item;
   S.item = null;
-  if (it === 'turbo') { S.turboT = 2.6; toast('TURBO ! 🚀'); sfx('turbo'); sfx('cluck'); }
-  if (it === 'shield') { S.shieldT = 8; toast('BOUCLIER ! 🛡️'); sfx('shield'); }
-  if (it === 'wheel') { S.wheelT = 9; toast('ROUE NEUVE ! 🔧'); sfx('wheel'); }
-  if (it === 'magnet') { S.magnetT = 7; toast('AIMANT À COURSES ! 🧲'); sfx('magnet'); }
+  if (it === 'turbo') { S.turboT = 2.6; toast(T('TURBO ! 🚀', 'TURBO! 🚀')); sfx('turbo'); sfx('cluck'); }
+  if (it === 'shield') { S.shieldT = 8; toast(T('BOUCLIER ! 🛡️', 'SHIELD! 🛡️')); sfx('shield'); }
+  if (it === 'wheel') { S.wheelT = 9; toast(T('ROUE NEUVE ! 🔧', 'NEW WHEEL! 🔧')); sfx('wheel'); }
+  if (it === 'magnet') { S.magnetT = 7; toast(T('AIMANT À COURSES ! 🧲', 'GROCERY MAGNET! 🧲')); sfx('magnet'); }
   updateItemUI();
 }
 function updateItemUI() {
@@ -2991,7 +3149,7 @@ function buildProfile() {
       const x = 10 + k * (w - 20) / CFG.laps;
       g.fillStyle = 'rgba(255,255,255,.18)'; roundRect(g, x + 2, 16, (w - 20) / CFG.laps - 4, 14, 7); g.fill();
       g.font = 'bold 11px sans-serif'; g.fillStyle = 'rgba(255,255,255,.7)'; g.textAlign = 'center';
-      g.fillText(`TOUR ${k + 1}`, x + (w - 20) / CFG.laps / 2, 12);
+      g.fillText(`${T('TOUR', 'LAP')} ${k + 1}`, x + (w - 20) / CFG.laps / 2, 12);
     }
     g.font = '16px sans-serif'; g.textAlign = 'right'; g.fillText('🏁', w - 2, 44);
     profBg = c;
@@ -3084,22 +3242,22 @@ function updateHUD() {
   }
   $('timer').textContent = `⏱ ${fmtTime(S.elapsed)}`;
   $('speed').textContent = `${Math.round(S.speed * 3.6)} km/h`;
-  $('best').textContent = `Record : ${SAVE.best[MODE] || 0}`;
+  $('best').textContent = `${T('Record', 'Best')} : ${SAVE.best[MODE] || 0}`;
   if (MODE === 'market') {
     const lap = clamp(S.lap, 1, CFG.laps);
-    $('alt').textContent = `🏁 Tour ${lap}/${CFG.laps}`;
+    $('alt').textContent = `🏁 ${T('Tour', 'Lap')} ${lap}/${CFG.laps}`;
     const lt = S.elapsed - S.lapStart;
-    $('remain').textContent = S.d >= L ? 'ARRIVÉE !' : `TOUR ${lap}/${CFG.laps} · ${fmtTime(Math.max(0, lt))}` + (S.lapTimes.length ? ` · meilleur ${Math.min(...S.lapTimes).toFixed(1)} s` : '');
+    $('remain').textContent = S.d >= L ? T('ARRIVÉE !', 'FINISH!') : `${T('TOUR', 'LAP')} ${lap}/${CFG.laps} · ${fmtTime(Math.max(0, lt))}` + (S.lapTimes.length ? ` · ${T('meilleur', 'best')} ${Math.min(...S.lapTimes).toFixed(1)} s` : '');
   } else {
     $('alt').textContent = `⛰ ${Math.round(ALT_BASE + hAt(S.z) * 4)} m`;
-    $('remain').textContent = S.d >= L ? 'Arrivée !' : `Reste ${Math.ceil(L - Math.max(0, S.d))} m`;
+    $('remain').textContent = S.d >= L ? T('Arrivée !', 'Finish!') : `${T('Reste', 'To go:')} ${Math.ceil(L - Math.max(0, S.d))} m`;
   }
   const fx = [];
   if (S.turboT > 0) fx.push(`🚀 Turbo ${S.turboT.toFixed(1)}s`);
-  if (S.shieldT > 0) fx.push(`🛡️ Bouclier ${S.shieldT.toFixed(1)}s`);
+  if (S.shieldT > 0) fx.push(`🛡️ ${T('Bouclier', 'Shield')} ${S.shieldT.toFixed(1)}s`);
   if (S.wheelT > 0) fx.push(`🔧 Stable ${S.wheelT.toFixed(1)}s`);
-  if (S.magnetT > 0) fx.push(`🧲 Aimant ${S.magnetT.toFixed(1)}s`);
-  if (S.spinT > 0) fx.push('🌀 Ça glisse !');
+  if (S.magnetT > 0) fx.push(`🧲 ${T('Aimant', 'Magnet')} ${S.magnetT.toFixed(1)}s`);
+  if (S.spinT > 0) fx.push(T('🌀 Ça glisse !', '🌀 Slippery!'));
   $('effects').innerHTML = fx.join('<br>');
   drawProfile();
 }
@@ -3116,72 +3274,116 @@ function showCard(html, action, cls = '', cardCls = 'card') {
 function setUI(on) { document.body.classList.toggle('ui-off', !on); }
 function showMenu() {
   state = 'menu';
+  Portal.gameplay(false);
   setUI(false);
   leaveWardrobeCamera();
   const sel = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   showCard(`
+    <div class="menu-top"><button id="bLang" class="lang">${LANG === 'fr' ? '🇬🇧 English' : '🇫🇷 Français'}</button></div>
     <div class="menu-buttons">
-      <button id="bMarket">🛒 CIRCUIT SUPERMARCHÉ<small>3 tours · rafle un max de courses !</small></button>
-      <button id="bDescent" class="b2">🏔 LA DESCENTE<small>dévale la montagne</small></button>
-      <button id="bWardrobe" class="b3">🐔 VESTIAIRE<small>casques, armures, lunettes…</small></button>
+      <button id="bMarket">🛒 ${T('CIRCUIT SUPERMARCHÉ', 'SUPERMARKET RACE')}<small>${T('3 tours · rafle un max de courses !', '3 laps · grab all the groceries!')}</small></button>
+      <button id="bDescent" class="b2">🏔 ${T('LA DESCENTE', 'DOWNHILL')}<small>${T('dévale la montagne', 'race down the mountain')}</small></button>
+      <button id="bWardrobe" class="b3">🐔 ${T('VESTIAIRE', 'WARDROBE')}<small>${T('casques, armures, lunettes…', 'hats, armor, glasses…')}</small></button>
     </div>
-    <div class="menu-info">🛍️ ${SAVE.wallet} courses à dépenser · 🏆 Supermarché ${SAVE.best.market || 0} · Descente ${SAVE.best.descent || 0}</div>
-    <div class="menu-help"><span class="keys">←</span><span class="keys">→</span> / <span class="keys">Q</span><span class="keys">D</span> diriger ·
-      <span class="keys">↑</span> / <span class="keys">Espace</span> objet · <span class="keys">P</span> pause · <span class="keys">M</span> son · mobile : touchez gauche/droite
-      <span class="long"><br>🎁 Boîtes mystère : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant à courses — 🟧 boost · 🪵 rampe = saut !</span></div>`,
-    () => newGame('market'), 'title', 'card menu');
-  sel('bMarket', () => newGame('market'));
-  sel('bDescent', () => newGame('descent'));
+    <div class="menu-info">🛍️ ${SAVE.wallet} ${T('courses à dépenser', 'groceries to spend')} · 🏆 ${T('Supermarché', 'Supermarket')} ${SAVE.best.market || 0} · ${T('Descente', 'Downhill')} ${SAVE.best.descent || 0}</div>
+    <div class="menu-help"><span class="keys">←</span><span class="keys">→</span> / <span class="keys">A</span><span class="keys">D</span> ${T('diriger', 'steer')} ·
+      <span class="keys">↑</span> / <span class="keys">${T('Espace', 'Space')}</span> ${T('objet', 'item')} · <span class="keys">P</span> pause · <span class="keys">M</span> ${T('son', 'sound')} · ${T('mobile : touchez gauche/droite', 'mobile: tap left/right')}
+      <span class="long"><br>${T('🎁 Boîtes mystère : 🚀 Turbo · 🛡️ Bouclier · 🔧 Roue neuve · 🧲 Aimant à courses — 🟧 boost · 🪵 rampe = saut !',
+        '🎁 Mystery boxes: 🚀 Turbo · 🛡️ Shield · 🔧 New wheel · 🧲 Grocery magnet — 🟧 boost pad · 🪵 ramp = jump!')}</span></div>`,
+    () => playNew('market'), 'title', 'card menu');
+  sel('bMarket', () => playNew('market'));
+  sel('bDescent', () => playNew('descent'));
   sel('bWardrobe', openWardrobe);
+  sel('bLang', () => { SAVE.lang = LANG === 'fr' ? 'en' : 'fr'; persist(); location.reload(); });
 }
 
-function walletLine(gain) {
-  if (gain > 0) { SAVE.wallet += gain; persist(); }
-  return `<p><span class="gain">+${gain} 🛍️ pour le vestiaire</span> <span class="muted">(total ${SAVE.wallet})</span></p>`;
+// Crédite les courses de la partie dans le porte-monnaie (une seule fois)
+function walletLine() {
+  const gain = S.bagValue - S.credited;
+  if (gain > 0) { SAVE.wallet += gain; S.credited = S.bagValue; persist(); }
+  return `<p id="walletP"><span class="gain">+${S.bagValue * (S.doubled ? 2 : 1)} 🛍️ ${T('pour le vestiaire', 'for the wardrobe')}</span> <span class="muted">(total ${SAVE.wallet})</span></p>`;
+}
+function rewardButton(id, label) {
+  return Portal.hasRewarded ? `<button id="${id}" class="ad">📺 ${label}</button>` : '';
+}
+function bindReward(id, onSuccess) {
+  const b = $(id);
+  if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    const ok = await Portal.rewarded();
+    if (ok) onSuccess(); else { b.disabled = false; toast(T('Pub indisponible 😕', 'No ad available 😕')); }
+  };
 }
 function showLevelDone() {
   const next = levelConfig(MODE, S.level + 1);
   const isRecord = saveBest(S.bank);
-  const lapsHtml = MODE === 'market' && S.lapTimes.length ? `<div><span>🏁 Meilleur tour</span><b>${Math.min(...S.lapTimes).toFixed(2)} s</b></div>` : '';
+  if (isRecord) Portal.happy();
+  const lapsHtml = MODE === 'market' && S.lapTimes.length ? `<div><span>🏁 ${T('Meilleur tour', 'Best lap')}</span><b>${Math.min(...S.lapTimes).toFixed(2)} s</b></div>` : '';
   const golds = S.bag.filter(b => b.gold).length;
   showCard(`
-    <h2>🏁 ${MODE === 'market' ? 'Course' : 'Niveau ' + S.level} terminée !</h2>
+    <h2>🏁 ${MODE === 'market' ? T('Course terminée !', 'Race complete!') : T(`Niveau ${S.level} terminé !`, `Level ${S.level} complete!`)}</h2>
     <p class="muted">${CFG.name}</p>
     <div class="stats">
-      <div><span>⏱ Temps</span><b>${fmtTime(S.elapsed)}</b></div>
+      <div><span>⏱ ${T('Temps', 'Time')}</span><b>${fmtTime(S.elapsed)}</b></div>
       ${lapsHtml}
-      <div><span>🛍️ Courses (${S.bag.length}${golds ? `, dont ${golds} ✨` : ''})</span><b>${bagPoints()} pts</b></div>
+      <div><span>🛍️ ${T('Courses', 'Groceries')} (${S.bag.length}${golds ? T(`, dont ${golds} ✨`, `, ${golds} golden ✨`) : ''})</span><b>${bagPoints()} pts</b></div>
       <div><span>📏 Distance</span><b>${Math.round(CFG.length)} pts</b></div>
-      <div><span>⚡ Bonus temps</span><b>${S.timeBonus} pts</b></div>
-      <div><span>🏆 Bonus niveau</span><b>${S.levelBonus} pts</b></div>
-      <div class="total"><span>Score total</span><span>${S.bank}</span></div>
+      <div><span>⚡ ${T('Bonus temps', 'Time bonus')}</span><b>${S.timeBonus} pts</b></div>
+      <div><span>🏆 ${T('Bonus niveau', 'Level bonus')}</span><b>${S.levelBonus} pts</b></div>
+      <div class="total"><span>${T('Score total', 'Total score')}</span><span>${S.bank}</span></div>
     </div>
-    ${walletLine(S.bagValue)}
-    <p>${isRecord ? '🏆 <b>Nouveau record !</b>' : `Record : <b>${SAVE.best[MODE]}</b>`}</p>
-    <p>Prochain : <b>Niveau ${next.n} · ${next.name}</b><br><span class="muted">plus rapide, plus d'obstacles</span></p>
-    <button id="go">NIVEAU SUIVANT</button>
-    <button id="menuBtn" class="secondary">Menu</button>`, () => startLevel(MODE, S.level + 1));
-  $('menuBtn').onclick = showMenu;
+    ${walletLine()}
+    ${S.bagValue > 0 && !S.doubled ? rewardButton('adDouble', T('Doubler mes courses', 'Double my groceries')) : ''}
+    <p>${isRecord ? T('🏆 <b>Nouveau record !</b>', '🏆 <b>New record!</b>') : `${T('Record', 'Best')} : <b>${SAVE.best[MODE]}</b>`}</p>
+    <p>${T('Prochain', 'Next')} : <b>${T('Niveau', 'Level')} ${next.n} · ${next.name}</b><br><span class="muted">${T("plus rapide, plus d'obstacles", 'faster, more obstacles')}</span></p>
+    <button id="go">${T('NIVEAU SUIVANT', 'NEXT LEVEL')}</button>
+    <button id="menuBtn" class="secondary">Menu</button>`, () => afterBreak(() => startLevel(MODE, S.level + 1)));
+  $('menuBtn').onclick = () => afterBreak(showMenu);
+  bindReward('adDouble', () => {
+    S.doubled = true; SAVE.wallet += S.bagValue; persist();
+    sfx('buy'); toast(T(`+${S.bagValue} 🛍️ bonus !`, `+${S.bagValue} 🛍️ bonus!`));
+    $('walletP').outerHTML = walletLine(); $('adDouble').remove();
+  });
 }
 function showGameOver() {
   const score = S.bank + Math.floor(S.crashD) + bagPoints();
   const isRecord = saveBest(score);
+  if (isRecord) Portal.happy();
   showCard(`
     <h2>💥 CRASH !</h2>
-    <p class="muted">Niveau ${S.level} · ${CFG.name}</p>
+    <p class="muted">${T('Niveau', 'Level')} ${S.level} · ${CFG.name}</p>
     <div class="big-score">${score} pts</div>
-    <p>Descendu <b>${Math.floor(S.crashD)} m</b> sur ${CFG.length} m (${Math.round((S.crashD / CFG.length) * 100)} %) — 🛍️ ${S.bag.length}</p>
-    ${walletLine(S.bagValue)}
-    <p>${isRecord ? '🏆 <b>Nouveau record !</b>' : `Record : <b>${SAVE.best[MODE]}</b>`}</p>
-    <button id="go">RÉESSAYER</button>
-    <button id="menuBtn" class="secondary">Menu</button>`, () => startLevel(MODE, S.level));
-  $('menuBtn').onclick = showMenu;
+    <p>${T(`Descendu <b>${Math.floor(S.crashD)} m</b> sur ${CFG.length} m`, `Went down <b>${Math.floor(S.crashD)} m</b> of ${CFG.length} m`)} (${Math.round((S.crashD / CFG.length) * 100)} %) — 🛍️ ${S.bag.length}</p>
+    ${walletLine()}
+    ${!S.revived ? rewardButton('adRevive', T('Continuer la course', 'Keep racing')) : ''}
+    <p>${isRecord ? T('🏆 <b>Nouveau record !</b>', '🏆 <b>New record!</b>') : `${T('Record', 'Best')} : <b>${SAVE.best[MODE]}</b>`}</p>
+    <button id="go">${T('RÉESSAYER', 'TRY AGAIN')}</button>
+    <button id="menuBtn" class="secondary">Menu</button>`, () => afterBreak(() => startLevel(MODE, S.level)));
+  $('menuBtn').onclick = () => afterBreak(showMenu);
+  bindReward('adRevive', revive);
+}
+// Pub récompensée : on repart d'où on s'est crashé, protégé par un bouclier
+function revive() {
+  S.revived = true;
+  S.d = Math.max(0, S.crashD - 2); S.z = -S.d;
+  S.speed = 8; S.vx = 0; S.bounce = 0; S.air = 0; S.vy = 0;
+  S.shieldT = 4; S.spinT = 0;
+  body.position.set(0, 0, 0); body.rotation.set(0, 0, 0);
+  pileGroup.visible = true; updatePile();
+  overlay.className = 'hidden';
+  setUI(true);
+  state = 'playing';
+  Portal.gameplay(true);
+  toast(T("C'EST REPARTI ! 🛡️", "BACK IN THE RACE! 🛡️"), 1200);
+  sfx('cluck');
 }
 
 /* --- Vestiaire --- */
 let wrTab = 'tete', wrLook = null, wrSel = null;
 function openWardrobe() {
   state = 'wardrobe';
+  Portal.gameplay(false);
   setUI(false);
   wrLook = Object.assign({}, SAVE.equip);
   wrSel = null;
@@ -3198,21 +3400,21 @@ function renderWardrobe() {
   const items = ACC[wrTab];
   const cur = wrLook[wrTab];
   const sel = wrSel ? findAcc(wrTab, wrSel) : null;
-  let detail = '<span class="wr-tip">Fais glisser la scène pour faire tourner ta poule 🐔</span>';
+  let detail = `<span class="wr-tip">${T('Fais glisser la scène pour faire tourner ta poule 🐔', 'Drag the scene to spin your chicken 🐔')}</span>`;
   if (sel && !owns(wrTab, sel.id)) {
     const can = SAVE.wallet >= sel.price;
-    detail = `<span>${sel.icon} ${sel.name} — <b>${sel.price} 🛍️</b></span><button id="buyBtn" ${can ? '' : 'disabled'}>${can ? 'Débloquer' : 'Pas assez'}</button>`;
+    detail = `<span>${sel.icon} ${accName(sel)} — <b>${sel.price} 🛍️</b></span><button id="buyBtn" ${can ? '' : 'disabled'}>${can ? T('Débloquer', 'Unlock') : T('Pas assez', 'Not enough')}</button>`;
   }
   showCard(`
-    <div class="wr-head"><h2>🐔 Vestiaire</h2><div class="wallet">🛍️ ${SAVE.wallet}</div></div>
+    <div class="wr-head"><h2>🐔 ${T('Vestiaire', 'Wardrobe')}</h2><div class="wallet">🛍️ ${SAVE.wallet}</div></div>
     <div class="tabs">${SLOTS.map(s => `<button class="tab ${s === wrTab ? 'active' : ''}" data-tab="${s}">${SLOT_INFO[s].icon} ${SLOT_INFO[s].name}</button>`).join('')}</div>
     <div class="grid">${items.map(it => {
       const own = owns(wrTab, it.id), eq = SAVE.equip[wrTab] === it.id;
-      const st = eq ? '✔ Équipé' : own ? (it.price ? 'Acheté' : 'Gratuit') : `🔒 ${it.price} 🛍️`;
-      return `<div class="it ${eq ? 'eq' : ''} ${cur === it.id && !eq ? 'sel' : ''} ${own ? '' : 'locked'}" data-id="${it.id}"><div class="ic">${it.icon}</div><div>${it.name}</div><div class="st">${st}</div></div>`;
+      const st = eq ? T('✔ Équipé', '✔ Equipped') : own ? (it.price ? T('Acheté', 'Owned') : T('Gratuit', 'Free')) : `🔒 ${it.price} 🛍️`;
+      return `<div class="it ${eq ? 'eq' : ''} ${cur === it.id && !eq ? 'sel' : ''} ${own ? '' : 'locked'}" data-id="${it.id}"><div class="ic">${it.icon}</div><div>${accName(it)}</div><div class="st">${st}</div></div>`;
     }).join('')}</div>
     <div class="wr-detail">${detail}</div>
-    <div class="wr-foot"><button id="wrRandom" class="secondary">🎲 Au hasard</button><button id="go">✔ TERMINÉ</button></div>`,
+    <div class="wr-foot"><button id="wrRandom" class="secondary">🎲 ${T('Au hasard', 'Random')}</button>${Portal.hasRewarded ? `<button id="wrAd" class="ad secondary">📺 +15 🛍️</button>` : ''}<button id="go">✔ ${T('TERMINÉ', 'DONE')}</button></div>`,
     closeWardrobe, 'wardrobe', 'card wr');
   card.querySelectorAll('.tab').forEach(b => (b.onclick = () => { wrTab = b.dataset.tab; wrSel = null; S.orbitA = wrTab === 'dos' ? Math.PI - 0.7 : 0.5; S.orbitIdle = 0; wrLook = Object.assign({}, SAVE.equip); applyLook(wrLook); renderWardrobe(); }));
   card.querySelectorAll('.it').forEach(b => (b.onclick = () => {
@@ -3228,6 +3430,7 @@ function renderWardrobe() {
   if (buy) buy.onclick = () => {
     const it = findAcc(wrTab, wrSel);
     if (SAVE.wallet < it.price) return;
+    Portal.happy();
     SAVE.wallet -= it.price;
     SAVE.owned.push(wrTab + ':' + it.id);
     SAVE.equip[wrTab] = it.id;
@@ -3237,6 +3440,7 @@ function renderWardrobe() {
     chicken.getWorldPosition(_v1); fxStar.burst(_v1.setY(_v1.y + 0.6), 40, 5, 1.2, 0.5, [0xffd23f, 0xff4fd8, 0x40a9ff, 0x7bd95a], 2);
     renderWardrobe();
   };
+  bindReward('wrAd', () => { SAVE.wallet += 15; persist(); sfx('buy'); renderWardrobe(); });
   $('wrRandom').onclick = () => {
     for (const s of SLOTS) { const owned = ACC[s].filter(a => owns(s, a.id)); SAVE.equip[s] = pick(owned).id; }
     persist(); wrLook = Object.assign({}, SAVE.equip); wrSel = null; applyLook(wrLook); poseFX(); sfx('cluck'); renderWardrobe();
@@ -3417,6 +3621,7 @@ function updateCountdown(dt) {
     else {
       el.textContent = 'GO !'; sfx('go'); sfx('cluck'); CH.flapT = 0.8;
       state = 'playing';
+      Portal.gameplay(true);
       clearTimeout(countTimer);
       countTimer = setTimeout(() => { if (!S.paused) el.textContent = ''; }, 700);
     }
@@ -3468,7 +3673,7 @@ function softHit(o) {
   fxFeather.burst(_v1, 14, 3.5, 1.6, 0.45, [0xffffff, 0xf3efe6]);
   fxSpark.burst(_v1, 14, 6, 0.4, 0.25, [0xffd23f, 0xffffff]);
   const lost = loseCourses(3);
-  toast(lost ? `AÏE ! −${lost} 🛍️` : 'AÏE !', 900);
+  toast(lost ? T(`AÏE ! −${lost} 🛍️`, `OUCH! −${lost} 🛍️`) : T('AÏE !', 'OUCH!'), 900);
   if (lost) popup(_v1.setY(_v1.y + 1), `−${lost} 🛍️`, 'bad');
 }
 
@@ -3548,7 +3753,7 @@ function updatePlaying(dt) {
         trkPoint(S.d, S.x, _v1); _v1.y += 0.1;
         fxDust.burst(_v1, 12, 3, 0.7, 1.2, [0xd8d2c4, 0xffffff]);
         fxSpark.burst(_v1, 10, 5, 0.3, 0.2, [0xffd23f, 0xffffff], 1);
-        toast('ATTERRISSAGE ! 🔥', 600);
+        toast(T('ATTERRISSAGE ! 🔥', 'NICE LANDING! 🔥'), 600);
       }
       S.vy = 0;
     }
@@ -3618,7 +3823,7 @@ function updatePlaying(dt) {
       if (S.spinT <= 0) {
         S.spinT = SPIN_DUR; S.spinDir = Math.random() < 0.5 ? -1 : 1;
         S.vx += S.spinDir * 6; S.camShake = 0.2; CH.scream = 0.5;
-        sfx('oil'); toast('Ça glisse ! 🌀');
+        sfx('oil'); toast(T('Ça glisse ! 🌀', 'Slippery! 🌀'));
       }
     } else if (u.kind === 'course') {
       if (Math.abs(u.yOff - (S.air + 0.95)) > 1.15) continue;
@@ -3640,7 +3845,7 @@ function updatePlaying(dt) {
       u.cool = 1;
       S.vy = JUMP_VY; S.air = 0.01;
       sfx('jump'); sfx('cluck'); CH.flapT = 0.5;
-      toast('SAUT ! 🐔', 600);
+      toast(T('SAUT ! 🐔', 'JUMP! 🐔'), 600);
     }
   }
 
@@ -3652,7 +3857,7 @@ function updatePlaying(dt) {
       S.lapStart = S.elapsed;
       S.lap = lap;
       sfx('lap');
-      toast(lap === CFG.laps ? 'DERNIER TOUR ! 🔔' : `TOUR ${lap}/${CFG.laps}`, 1300);
+      toast(lap === CFG.laps ? T('DERNIER TOUR ! 🔔', 'FINAL LAP! 🔔') : T(`TOUR ${lap}/${CFG.laps}`, `LAP ${lap}/${CFG.laps}`), 1300);
     }
   }
   if (S.d >= CFG.length) { finishLevel(); return; }
@@ -3661,6 +3866,7 @@ function updatePlaying(dt) {
 
 function crash() {
   state = 'crashing';
+  Portal.gameplay(false);
   S.crashT = 0;
   S.crashD = S.d;
   S.camShake = 0.9;
@@ -3708,6 +3914,8 @@ function updateCrashing(dt) {
 
 function finishLevel() {
   state = 'finished';
+  Portal.gameplay(false);
+  Portal.races++;
   S.finishT = 0;
   if (TRK.loop && S.lapTimes.length < CFG.laps) S.lapTimes.push(S.elapsed - S.lapStart);
   const par = CFG.length / CFG.cruise * (TRK.loop ? 1.15 : 1);
@@ -3715,7 +3923,7 @@ function finishLevel() {
   S.levelBonus = 300 * S.level;
   S.levelPts = Math.round(CFG.length) + bagPoints();
   sfx('finish'); sfx('cluck');
-  toast('ARRIVÉE ! 🏁', 1800);
+  toast(T('ARRIVÉE ! 🏁', 'FINISH! 🏁'), 1800);
   spawnConfetti();
   flames.forEach(f => (f.visible = false));
   magnetRing.visible = false; shieldMesh.visible = false;
@@ -3845,6 +4053,8 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+// Outil de test (uniquement avec ?debug=1 dans l'adresse)
+if (/[?&]debug=1/.test(location.search)) window.__caddie = { sim: sec => { for (let i = 0; i < sec * 30; i++) tick(1 / 30); }, S, keys, get state() { return state; } };
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -3852,11 +4062,20 @@ window.addEventListener('resize', () => {
   if (state === 'wardrobe') setWardrobeCamera();
 });
 
+// Textes fixes de l'interface
+document.title = T('Caddie Rush 3D — Poule Turbo', 'Caddie Rush 3D — Turbo Chicken');
+document.querySelectorAll('#hud .label')[0].textContent = 'Score';
+document.querySelectorAll('#hud .label')[1].textContent = T('Vitesse', 'Speed');
+document.querySelector('#bag small').textContent = T('COURSES', 'GROCERIES');
+$('itemHint').textContent = IS_TOUCH ? T('Objet : touchez', 'Item: tap') : T('Objet : ↑ / Espace', 'Item: ↑ / Space');
+$('itemSlot').title = T("Utiliser l'objet", 'Use item');
+
 // Démarrage : le magasin en fond, la poule prête au départ
 applyLook(SAVE.equip);
 prepareLevel('market', 1);
 showMenu();
 loop();
+Portal.loadingDone();
 </script>
 </body>
 </html>
